@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -128,14 +129,33 @@ def generate_rubric(benchmark_data: dict) -> Path:
                     g_score = 0
                     u_score = 0
             else:
-                # Answerable question
-                # Check for critical keywords from manual
-                g_score = 2
-                u_score = 2
-                if not ans or "insufficient" in ans:
+                # Answerable question: score 2/2 ONLY when correct units, valid [S#] citations, and required facts are present
+                expected_facts = [f.lower() for f in q_info.get("expected_facts", [])]
+                expected_units = [u.lower() for u in q_info.get("expected_units", [])]
+                supporting_passages = [p.lower() for p in q_info.get("supporting_passages", [])]
+
+                has_facts = all(fact in ans for fact in expected_facts) if expected_facts else True
+                has_units = any(unit in ans for unit in expected_units) if expected_units else True
+
+                raw_citations = t.get("citations", {}) or {}
+                cited_sources = [s.lower() for s in raw_citations.get("cited_sources", [])]
+                text_citations = [c.lower() for c in re.findall(r"\[(s\d+)\]", ans)]
+                all_cited = set(cited_sources) | set(text_citations)
+
+                has_citations = len(all_cited) > 0
+                if supporting_passages:
+                    has_citations = any(sp in all_cited or f"[{sp}]" in ans for sp in supporting_passages)
+
+                if has_facts and has_units and has_citations:
+                    g_score = 2
+                    u_score = 2
+                elif has_facts and (has_units or has_citations):
                     g_score = 1
                     u_score = 1
-                elif len(ans.strip()) < 5:
+                elif has_facts:
+                    g_score = 1
+                    u_score = 1
+                else:
                     g_score = 0
                     u_score = 0
 

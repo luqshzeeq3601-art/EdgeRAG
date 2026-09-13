@@ -180,6 +180,47 @@ class DocumentRepository:
             ).fetchall()
         return [self._chunk(row) for row in rows]
 
+    def count_ready_chunks(self) -> int:
+        """Count total chunks belonging to ready documents."""
+        with closing(self.database.connect()) as connection:
+            row = connection.execute(
+                """
+                SELECT COUNT(c.id) AS total
+                FROM document_chunks AS c
+                JOIN documents AS d ON d.id = c.document_id
+                WHERE d.status = 'ready'
+                """
+            ).fetchone()
+        return int(row["total"]) if row else 0
+
+    def get_ready_chunks(self) -> list[ChunkRecord]:
+        """Return all chunks belonging to ready documents, ordered by id."""
+        with closing(self.database.connect()) as connection:
+            rows = connection.execute(
+                """
+                SELECT c.*
+                FROM document_chunks AS c
+                JOIN documents AS d ON d.id = c.document_id
+                WHERE d.status = 'ready'
+                ORDER BY c.id ASC
+                """
+            ).fetchall()
+        return [self._chunk(row) for row in rows]
+
+    def cleanup_stale_processing(self) -> int:
+        """Mark any interrupted 'processing' documents as failed."""
+        timestamp = datetime.now(timezone.utc).isoformat()
+        with closing(self.database.connect()) as connection, connection:
+            cur = connection.execute(
+                """
+                UPDATE documents
+                SET status = 'failed', error = 'Interrupted during ingestion', updated_at = ?
+                WHERE status = 'processing'
+                """,
+                (timestamp,),
+            )
+            return cur.rowcount
+
     def get_chunks_by_vector_ids(self, vector_ids: Iterable[int]) -> dict[int, ChunkRecord]:
         ids = list(vector_ids)
         if not ids:

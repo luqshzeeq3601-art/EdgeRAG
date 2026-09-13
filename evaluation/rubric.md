@@ -1,6 +1,6 @@
 # Acceptance 20 Benchmark & Groundedness Rubric Evaluation
 
-**Date**: 2026-09-13 05:36:33 UTC
+**Date**: 2026-09-13 06:27:14 UTC
 **Benchmark Run ID**: `bench_ae5cd9c10fd6`
 **Corpus**: `ECP-2400_Emergency_Cooling_Pump_Manual.pdf` (3 pages, 3 chunks)
 **Execution Mode**: `fixed_context` | **Profile**: `warm` (1 warm-up discarded)
@@ -18,8 +18,8 @@
 
 | Model | Total Trials | Mean Groundedness (0-2) | Mean Usefulness (0-2) | Unsupported Rejection Rate | Mean Throughput (tok/s) | Mean TTFT (ms) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| `smollm2:135m` | 20 | **1.50 / 2.00** | **1.50 / 2.00** | **0.0%** (0/5) | 438.4 tok/s | 73.5 ms |
-| `qwen2.5:0.5b` | 20 | **1.80 / 2.00** | **1.80 / 2.00** | **60.0%** (3/5) | 311.5 tok/s | 122.7 ms |
+| `smollm2:135m` | 20 | **0.60 / 2.00** | **0.60 / 2.00** | **0.0%** (0/5) | 438.4 tok/s | 73.5 ms |
+| `qwen2.5:0.5b` | 20 | **0.90 / 2.00** | **0.90 / 2.00** | **60.0%** (3/5) | 311.5 tok/s | 122.7 ms |
 
 ## Detailed Trial Results (Acceptance 20 Suite)
 
@@ -27,36 +27,36 @@
 
 | ID | Question | Model | Model Output Excerpt | Groundedness | Usefulness | Latency (ms) | Throughput (tok/s) |
 | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: |
-| `ACC-01` | What is the nominal operating speed of the pump? | `smollm2:135m` | Based on the context passage, the nominal operating speed of the pump is 2400 RPM (dischar... | 2/2 | 2/2 | 146.1 ms | 463.5 |
-| `ACC-01` | What is the nominal operating speed of the pump? | `qwen2.5:0.5b` | [2.1] The Model ECP-2400 is an industrial emergency cooling pump skid designed for critica... | 2/2 | 2/2 | 283.5 ms | 294.4 |
-| `ACC-02` | What is the maximum operating pressure? | `smollm2:135m` | Based on the context passages, the maximum operating pressure for the ECP-2400 is 12.5 bar... | 2/2 | 2/2 | 141.8 ms | 435.4 |
-| `ACC-02` | What is the maximum operating pressure? | `qwen2.5:0.5b` | [1.1] The Model ECP-2400 is an industrial emergency cooling pump skid designed for critica... | 2/2 | 2/2 | 191.7 ms | 298.6 |
-| `ACC-03` | What is the rated flow rate? | `smollm2:135m` | Based on the context passage, the rated flow rate for the ECP-2400 is: 350 L/min at 18.75 ... | 2/2 | 2/2 | 151.3 ms | 492.9 |
-| `ACC-03` | What is the rated flow rate? | `qwen2.5:0.5b` | [1.2 RPM - 350 L/min] | 2/2 | 2/2 | 358.3 ms | 255.4 |
-| `ACC-04` | What lubricant is specified for bearing housings? | `smollm2:135m` | Based on the context passage, the lubricants specified for bearing housings in the ECP-240... | 2/2 | 2/2 | 1048.3 ms | 448.8 |
-| `ACC-04` | What lubricant is specified for bearing housings? | `qwen2.5:0.5b` | [ISO VG 46 synthetic gear and bearing oil.] | 2/2 | 2/2 | 155.3 ms | 296.5 |
-| `ACC-05` | What is the primary seal inspection interval? | `smollm2:135m` | Based on the context passage, the primary seal inspection interval for the ECP-2400-EMERGE... | 2/2 | 2/2 | 162.2 ms | 450.4 |
-| `ACC-05` | What is the primary seal inspection interval? | `qwen2.5:0.5b` | [2.1 Lubricant Specifications - Specified lubricant for bearing housings: ISO VG 46 synthe... | 2/2 | 2/2 | 637.3 ms | 363.8 |
-| `ACC-06` | What vibration threshold indicates cavitation? | `smollm2:135m` | The vibration threshold is: 2.2 mm/s RMS velocity. | 2/2 | 2/2 | 103.2 ms | 461.7 |
-| `ACC-06` | What vibration threshold indicates cavitation? | `qwen2.5:0.5b` | [3.1 Vibration and Temperature Safety Thresholds - Normal baseline overall vibration: belo... | 2/2 | 2/2 | 384.4 ms | 335.2 |
-| `ACC-07` | What is the bolt torque for casing flange bolts? | `smollm2:135m` | [S1]: 2400 RPM (direct drive synchronous coupling)  [S2]: 2600 RPM (test pressure 18.75 ba... | 2/2 | 2/2 | 528.5 ms | 465.5 |
-| `ACC-07` | What is the bolt torque for casing flange bolts? | `qwen2.5:0.5b` | [1]: [S1] [S2]: [S3] [S1] [S2] [S3] | 2/2 | 2/2 | 156.3 ms | 337.6 |
-| `ACC-08` | What is the emergency shutdown bearing temperature? | `smollm2:135m` | The emergency shutdown bearing temperature in the ECP-2400 is around 125 degrees Celsius (... | 2/2 | 2/2 | 137.8 ms | 479.2 |
-| `ACC-08` | What is the emergency shutdown bearing temperature? | `qwen2.5:0.5b` | [3.3. Mandatory Pre-Startup Air Bleeding Procedure] The emergency shutdown bearing tempera... | 2/2 | 2/2 | 227.7 ms | 319.8 |
-| `ACC-09` | When must impeller wear rings be replaced? | `smollm2:135m` | Based on the context passage, when must impeller wear rings be replaced:  - The context st... | 2/2 | 2/2 | 457.0 ms | 473.6 |
-| `ACC-09` | When must impeller wear rings be replaced? | `qwen2.5:0.5b` | The impeller wear rings must be replaced whenever the measured radial clearance exceeds 0.... | 2/2 | 2/2 | 521.7 ms | 312.0 |
+| `ACC-01` | What is the nominal operating speed of the pump? | `smollm2:135m` | Based on the context passage, the nominal operating speed of the pump is 2400 RPM (dischar... | 1/2 | 1/2 | 146.1 ms | 463.5 |
+| `ACC-01` | What is the nominal operating speed of the pump? | `qwen2.5:0.5b` | [2.1] The Model ECP-2400 is an industrial emergency cooling pump skid designed for critica... | 1/2 | 1/2 | 283.5 ms | 294.4 |
+| `ACC-02` | What is the maximum operating pressure? | `smollm2:135m` | Based on the context passages, the maximum operating pressure for the ECP-2400 is 12.5 bar... | 1/2 | 1/2 | 141.8 ms | 435.4 |
+| `ACC-02` | What is the maximum operating pressure? | `qwen2.5:0.5b` | [1.1] The Model ECP-2400 is an industrial emergency cooling pump skid designed for critica... | 0/2 | 0/2 | 191.7 ms | 298.6 |
+| `ACC-03` | What is the rated flow rate? | `smollm2:135m` | Based on the context passage, the rated flow rate for the ECP-2400 is: 350 L/min at 18.75 ... | 1/2 | 1/2 | 151.3 ms | 492.9 |
+| `ACC-03` | What is the rated flow rate? | `qwen2.5:0.5b` | [1.2 RPM - 350 L/min] | 1/2 | 1/2 | 358.3 ms | 255.4 |
+| `ACC-04` | What lubricant is specified for bearing housings? | `smollm2:135m` | Based on the context passage, the lubricants specified for bearing housings in the ECP-240... | 1/2 | 1/2 | 1048.3 ms | 448.8 |
+| `ACC-04` | What lubricant is specified for bearing housings? | `qwen2.5:0.5b` | [ISO VG 46 synthetic gear and bearing oil.] | 1/2 | 1/2 | 155.3 ms | 296.5 |
+| `ACC-05` | What is the primary seal inspection interval? | `smollm2:135m` | Based on the context passage, the primary seal inspection interval for the ECP-2400-EMERGE... | 0/2 | 0/2 | 162.2 ms | 450.4 |
+| `ACC-05` | What is the primary seal inspection interval? | `qwen2.5:0.5b` | [2.1 Lubricant Specifications - Specified lubricant for bearing housings: ISO VG 46 synthe... | 1/2 | 1/2 | 637.3 ms | 363.8 |
+| `ACC-06` | What vibration threshold indicates cavitation? | `smollm2:135m` | The vibration threshold is: 2.2 mm/s RMS velocity. | 0/2 | 0/2 | 103.2 ms | 461.7 |
+| `ACC-06` | What vibration threshold indicates cavitation? | `qwen2.5:0.5b` | [3.1 Vibration and Temperature Safety Thresholds - Normal baseline overall vibration: belo... | 1/2 | 1/2 | 384.4 ms | 335.2 |
+| `ACC-07` | What is the bolt torque for casing flange bolts? | `smollm2:135m` | [S1]: 2400 RPM (direct drive synchronous coupling)  [S2]: 2600 RPM (test pressure 18.75 ba... | 1/2 | 1/2 | 528.5 ms | 465.5 |
+| `ACC-07` | What is the bolt torque for casing flange bolts? | `qwen2.5:0.5b` | [1]: [S1] [S2]: [S3] [S1] [S2] [S3] | 0/2 | 0/2 | 156.3 ms | 337.6 |
+| `ACC-08` | What is the emergency shutdown bearing temperature? | `smollm2:135m` | The emergency shutdown bearing temperature in the ECP-2400 is around 125 degrees Celsius (... | 0/2 | 0/2 | 137.8 ms | 479.2 |
+| `ACC-08` | What is the emergency shutdown bearing temperature? | `qwen2.5:0.5b` | [3.3. Mandatory Pre-Startup Air Bleeding Procedure] The emergency shutdown bearing tempera... | 1/2 | 1/2 | 227.7 ms | 319.8 |
+| `ACC-09` | When must impeller wear rings be replaced? | `smollm2:135m` | Based on the context passage, when must impeller wear rings be replaced:  - The context st... | 1/2 | 1/2 | 457.0 ms | 473.6 |
+| `ACC-09` | When must impeller wear rings be replaced? | `qwen2.5:0.5b` | The impeller wear rings must be replaced whenever the measured radial clearance exceeds 0.... | 1/2 | 1/2 | 521.7 ms | 312.0 |
 | `ACC-10` | What is the skid assembly weight and footprint? | `smollm2:135m` | The skid assembly weight and footprint for the ECP-2400 EMERGENCY COOLING PUMP SYSTEM is: ... | 2/2 | 2/2 | 565.1 ms | 446.7 |
 | `ACC-10` | What is the skid assembly weight and footprint? | `qwen2.5:0.5b` | [S1] Total skid assembly dry weight: 420 kg [S2] Skid footprint dimensions: 1200 mm length... | 2/2 | 2/2 | 508.0 ms | 311.3 |
-| `ACC-11` | What are the electrical power supply requirements? | `smollm2:135m` | I'm glad you asked for the details on the electrical power supply requirements for the ECP... | 2/2 | 2/2 | 435.2 ms | 443.3 |
+| `ACC-11` | What are the electrical power supply requirements? | `smollm2:135m` | I'm glad you asked for the details on the electrical power supply requirements for the ECP... | 0/2 | 0/2 | 435.2 ms | 443.3 |
 | `ACC-11` | What are the electrical power supply requirements? | `qwen2.5:0.5b` | [S1] Section 3: Commissioning Procedures 3.1 Vibration and Temperature Safety Thresholds -... | 2/2 | 2/2 | 864.4 ms | 332.1 |
-| `ACC-12` | How often should alignment checks be conducted? | `smollm2:135m` | Based on the context passage, the user is asked to consider the frequency of alignment che... | 2/2 | 2/2 | 287.6 ms | 452.9 |
-| `ACC-12` | How often should alignment checks be conducted? | `qwen2.5:0.5b` | [3 months] | 2/2 | 2/2 | 325.3 ms | 338.5 |
+| `ACC-12` | How often should alignment checks be conducted? | `smollm2:135m` | Based on the context passage, the user is asked to consider the frequency of alignment che... | 0/2 | 0/2 | 287.6 ms | 452.9 |
+| `ACC-12` | How often should alignment checks be conducted? | `qwen2.5:0.5b` | [3 months] | 1/2 | 1/2 | 325.3 ms | 338.5 |
 | `ACC-13` | What is the maximum suction lift capability? | `smollm2:135m` | Based on the given context passage, the maximum suction lift capability of the ECP-2400 is... | 2/2 | 2/2 | 853.0 ms | 414.2 |
-| `ACC-13` | What is the maximum suction lift capability? | `qwen2.5:0.5b` | [Maximum allowable operating pressure: 12.5 bar (test pressure 18.75 bar)] | 2/2 | 2/2 | 631.1 ms | 292.7 |
-| `ACC-14` | What is the permissible particulate size in pumped media? | `smollm2:135m` | The permissible particulate size in pumped media is 0.5 mm non-abrasive suspended solids. | 2/2 | 2/2 | 139.4 ms | 303.0 |
-| `ACC-14` | What is the permissible particulate size in pumped media? | `qwen2.5:0.5b` | [6.2 meters] | 2/2 | 2/2 | 86.5 ms | 280.6 |
-| `ACC-15` | What steps must be followed to bleed air prior to startup? | `smollm2:135m` | Based on the context passage, the user needs to perform the following steps to bleed air p... | 2/2 | 2/2 | 798.0 ms | 428.8 |
-| `ACC-15` | What steps must be followed to bleed air prior to startup? | `qwen2.5:0.5b` | [S1] ECP-2400_Emergency_Cooling_Pump_Manual.pdf, Page: 3 [S2] ECP-2400_Emergency_Cooling_P... | 2/2 | 2/2 | 561.2 ms | 306.7 |
+| `ACC-13` | What is the maximum suction lift capability? | `qwen2.5:0.5b` | [Maximum allowable operating pressure: 12.5 bar (test pressure 18.75 bar)] | 0/2 | 0/2 | 631.1 ms | 292.7 |
+| `ACC-14` | What is the permissible particulate size in pumped media? | `smollm2:135m` | The permissible particulate size in pumped media is 0.5 mm non-abrasive suspended solids. | 1/2 | 1/2 | 139.4 ms | 303.0 |
+| `ACC-14` | What is the permissible particulate size in pumped media? | `qwen2.5:0.5b` | [6.2 meters] | 0/2 | 0/2 | 86.5 ms | 280.6 |
+| `ACC-15` | What steps must be followed to bleed air prior to startup? | `smollm2:135m` | Based on the context passage, the user needs to perform the following steps to bleed air p... | 1/2 | 1/2 | 798.0 ms | 428.8 |
+| `ACC-15` | What steps must be followed to bleed air prior to startup? | `qwen2.5:0.5b` | [S1] ECP-2400_Emergency_Cooling_Pump_Manual.pdf, Page: 3 [S2] ECP-2400_Emergency_Cooling_P... | 0/2 | 0/2 | 561.2 ms | 306.7 |
 
 ### Unsupported & Out-of-Scope Questions (ACC-16 to ACC-20)
 
