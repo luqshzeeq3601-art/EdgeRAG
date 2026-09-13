@@ -184,10 +184,23 @@ class HardwareMonitor:
             self._stop_event.wait(self.sample_interval)
 
     def stop(self) -> list[ResourceSampleRecord]:
-        """Stop sampling and return all captured samples."""
+        """Stop sampling and return all captured samples with thread join verification."""
         self._stop_event.set()
         if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=2.0)
+            self._thread.join(timeout=3.0)
+            if self._thread.is_alive():
+                import logging
+                logging.getLogger(__name__).warning("HardwareMonitor background sampling thread failed to join within 3.0s timeout")
         self._thread = None
         with self._samples_lock:
             return list(self._samples)
+
+    def stop_background_sampling(self) -> list[ResourceSampleRecord]:
+        """Alias for stop() supporting explicit background sampling termination."""
+        return self.stop()
+
+    def close(self) -> None:
+        """Cleanly stop sampling and shutdown NVML resources."""
+        self.stop()
+        if self.nvml_reader:
+            self.nvml_reader.close()

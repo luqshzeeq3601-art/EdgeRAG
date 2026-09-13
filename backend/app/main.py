@@ -84,7 +84,16 @@ def create_app(
         except Exception as exc:
             # The health route reports database failures as structured readiness data.
             application.state.database_initialization_error = str(exc)
-        yield
+        try:
+            yield
+        finally:
+            resolved_hw_monitor.close()
+            try:
+                import pynvml
+
+                pynvml.nvmlShutdown()
+            except Exception:
+                pass
 
     application = FastAPI(
         title=resolved_settings.app_name,

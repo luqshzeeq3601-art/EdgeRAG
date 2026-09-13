@@ -156,6 +156,17 @@ class BenchmarkEngine:
     async def run_benchmark(self, plan: BenchmarkExecutionPlan) -> BenchmarkRecord:
         """Execute a full benchmark suite sequentially with telemetry."""
         async with self._lock:
+            # Re-check database cancellation status immediately after acquiring worker lock
+            initial_rec = self.repository.get_benchmark(plan.benchmark_id)
+            if initial_rec and initial_rec.status == "cancelled":
+                completed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                self.repository.update_benchmark_status(
+                    plan.benchmark_id,
+                    "cancelled",
+                    completed_at=completed_at,
+                )
+                return self.repository.get_benchmark(plan.benchmark_id)
+
             cancel_event = asyncio.Event()
             self._cancellation_events[plan.benchmark_id] = cancel_event
 
@@ -236,13 +247,14 @@ class BenchmarkEngine:
                             fixed_context_data = (f_context, sources, ret_ms)
 
                         for model_name in models_order:
-                            if cancel_event.is_set():
+                            rec_check = self.repository.get_benchmark(plan.benchmark_id)
+                            if cancel_event.is_set() or (rec_check and rec_check.status == "cancelled"):
                                 is_cancelled = True
                                 break
 
-                            # Cold run: ensure model is unloaded first
+                            # Cold run: ensure model is unloaded first and evicted from VRAM
                             if plan.temperature_type == "cold":
-                                await self.ollama_provider.unload_model(model_name)
+                                await self.ollama_provider.unload_model(model_name, poll_timeout=5.0)
                                 await asyncio.sleep(0.5)
 
                             trial_id = f"trial_{uuid.uuid4().hex[:12]}"
@@ -268,7 +280,8 @@ class BenchmarkEngine:
 
                             self._current_trial_id = None
 
-                            if cancel_event.is_set():
+                            rec_after = self.repository.get_benchmark(plan.benchmark_id)
+                            if cancel_event.is_set() or (rec_after and rec_after.status == "cancelled"):
                                 is_cancelled = True
                                 break
 
