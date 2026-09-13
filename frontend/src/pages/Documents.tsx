@@ -233,16 +233,20 @@ export const DocumentsPage: React.FC = () => {
     <div className="documents-page">
       <div className="document-heading">
         <div>
-          <p className="document-kicker">Local document index</p>
+          <p className="document-kicker">LOCAL DOCUMENT INDEX</p>
           <h1 className="document-title">Document Workspace</h1>
           <p className="document-subtitle">
-            Manage local manuals, extract content, and build a searchable knowledge base.
+            Manage local manuals, extract content, and build your searchable knowledge base.
           </p>
         </div>
         <div className="page-actions">
           <button type="button" onClick={fetchDocuments} className="button button--quiet" title="Refresh documents list">
             <RefreshCw size={15} strokeWidth={1.8} className={isLoading ? 'spin' : undefined} />
-            Refresh index
+            Refresh
+          </button>
+          <button type="button" className="button button--quiet" title="Add Folder (local PDF directory)">
+            <FileText size={15} strokeWidth={1.8} />
+            + Add Folder
           </button>
         </div>
       </div>
@@ -250,11 +254,11 @@ export const DocumentsPage: React.FC = () => {
       <div className="workspace-grid">
         <section className="panel upload-panel" aria-labelledby="upload-title">
           <div className="panel-heading">
-            <div>
-              <p className="panel-kicker">Ingest source</p>
+            <div className="flex items-center gap-2">
+              <Upload size={18} strokeWidth={2} className="text-slate-800" />
               <h2 id="upload-title" className="panel-title">Add documents</h2>
             </div>
-            <span className="panel-note"><Info size={14} strokeWidth={1.8} /> PDF only</span>
+            <span className="panel-note">Supports PDF files only <Info size={14} strokeWidth={1.8} /></span>
           </div>
 
           <input
@@ -278,15 +282,18 @@ export const DocumentsPage: React.FC = () => {
             aria-describedby="upload-help"
           >
             <span className="drop-zone__mark" aria-hidden="true">
-              {isUploading ? <Loader2 size={25} className="spin" /> : isDragging ? <FileUp size={25} /> : <Upload size={25} />}
+              {isUploading ? <Loader2 size={24} className="spin" /> : isDragging ? <FileUp size={24} /> : <Upload size={24} />}
             </span>
             <span className="drop-zone__copy">
               <span className="drop-zone__title">
-                {isUploading ? 'Extracting and indexing PDF' : isDragging ? 'Release to add PDF' : <>Drop a technical PDF or <u>browse</u></>}
+                {isUploading ? 'Extracting and indexing PDF' : isDragging ? 'Release to add PDF' : <>Drop technical PDFs here or <u>browse</u></>}
               </span>
-              <span id="upload-help" className="drop-zone__detail">Up to 25 MB / 300 pages / English text extraction</span>
+              <span id="upload-help" className="drop-zone__detail">Up to 25 MB • 300 pages • English text extraction</span>
             </span>
-            <span className="button button--accent">Choose file <FileText size={15} strokeWidth={1.8} /></span>
+            <span className="button button--accent">
+              <FileText size={15} strokeWidth={1.8} />
+              Choose Files
+            </span>
           </button>
 
           {uploadError && (
@@ -302,9 +309,9 @@ export const DocumentsPage: React.FC = () => {
 
         <section className="panel overview-panel" aria-labelledby="overview-title">
           <div className="panel-heading">
-            <div>
-              <p className="panel-kicker">System telemetry</p>
-              <h2 id="overview-title" className="panel-title">Workspace overview</h2>
+            <div className="flex items-center gap-2">
+              <Activity size={18} strokeWidth={2} className="text-slate-800" />
+              <h2 id="overview-title" className="panel-title">Workspace Overview</h2>
             </div>
             <span className={`index-state index-state--${indexTone}`}>
               <span className="state-dot" aria-hidden="true" />
@@ -312,30 +319,65 @@ export const DocumentsPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="metrics-grid">
-            <div className="metric-cell">
-              <span className="metric-label"><FileText size={15} strokeWidth={1.8} /> Documents</span>
-              <strong className="metric-value">{documents.length}</strong>
+          <div className="overview-cards-grid">
+            <div className="overview-card">
+              <div className="overview-card__icon">
+                <FileText size={18} strokeWidth={1.8} />
+              </div>
+              <div>
+                <span className="overview-card__label">Documents</span>
+                <strong className="overview-card__value">{documents.length}</strong>
+              </div>
             </div>
-            <div className="metric-cell">
-              <span className="metric-label"><Layers3 size={15} strokeWidth={1.8} /> Pages indexed</span>
-              <strong className="metric-value">{totalPages}</strong>
+
+            <div className="overview-card">
+              <div className="overview-card__icon">
+                <Layers3 size={18} strokeWidth={1.8} />
+              </div>
+              <div>
+                <span className="overview-card__label">Pages indexed</span>
+                <strong className="overview-card__value">{totalPages}</strong>
+              </div>
             </div>
-            <div className="metric-cell">
-              <span className="metric-label"><Database size={15} strokeWidth={1.8} /> Chunks</span>
-              <strong className="metric-value">{totalChunks}</strong>
+
+            <div className="overview-card">
+              <div className="overview-card__icon">
+                <Database size={18} strokeWidth={1.8} />
+              </div>
+              <div>
+                <span className="overview-card__label">Chunks</span>
+                <strong className="overview-card__value">{totalChunks}</strong>
+              </div>
             </div>
-            <div className="metric-cell">
-              <span className="metric-label"><HardDrive size={15} strokeWidth={1.8} /> Storage used</span>
-              <strong className="metric-value metric-value--mono">{formatBytes(totalBytes)}</strong>
+
+            <div className="overview-card">
+              <div className="overview-card__icon">
+                <HardDrive size={18} strokeWidth={1.8} />
+              </div>
+              <div>
+                <span className="overview-card__label">Storage used</span>
+                <strong className="overview-card__value">{formatBytes(totalBytes)}</strong>
+              </div>
             </div>
-            <div className="metric-cell">
-              <span className="metric-label"><Activity size={15} strokeWidth={1.8} /> Index status</span>
-              <strong className={`metric-value metric-value--${indexTone}`}>{indexStatusValue}</strong>
+
+            <div className="overview-card">
+              <div className="overview-card__icon">
+                <CheckCircle2 size={18} strokeWidth={1.8} className="text-emerald-600" />
+              </div>
+              <div>
+                <span className="overview-card__label">Index status</span>
+                <strong className={`overview-card__value overview-card__value--${indexTone}`}>{indexStatusValue}</strong>
+              </div>
             </div>
-            <div className="metric-cell">
-              <span className="metric-label"><Clock3 size={15} strokeWidth={1.8} /> Sync mode</span>
-              <strong className="metric-value metric-value--text">Local only</strong>
+
+            <div className="overview-card">
+              <div className="overview-card__icon">
+                <Clock3 size={18} strokeWidth={1.8} />
+              </div>
+              <div>
+                <span className="overview-card__label">Last sync</span>
+                <strong className="overview-card__value overview-card__value--text">Just now</strong>
+              </div>
             </div>
           </div>
         </section>
@@ -343,16 +385,16 @@ export const DocumentsPage: React.FC = () => {
 
       <section className="panel knowledge-panel" aria-labelledby="knowledge-title">
         <div className="knowledge-header">
-          <div>
-            <p className="panel-kicker">Indexed sources</p>
-            <h2 id="knowledge-title" className="panel-title">Knowledge base <span className="count-mark">{filteredDocuments.length}</span></h2>
+          <div className="flex items-center gap-2">
+            <FileText size={18} strokeWidth={2} className="text-slate-800" />
+            <h2 id="knowledge-title" className="panel-title">Knowledge Base ({filteredDocuments.length})</h2>
           </div>
           <label className="search-field">
             <span className="visually-hidden">Search documents</span>
             <Search size={16} strokeWidth={1.8} aria-hidden="true" />
             <input
               type="search"
-              placeholder="Search documents"
+              placeholder="Search documents..."
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
             />
