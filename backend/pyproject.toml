@@ -1,0 +1,36 @@
+[project]
+name = "edgerag-backend"
+version = "0.1.0"
+description = "Local technical knowledge assistant backend"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "fastapi==0.116.1",
+    "faiss-cpu==1.11.0.post1",
+    "httpx==0.28.1",
+    "pypdf==5.9.0",
+    "psutil==7.0.0",
+    "python-multipart==0.0.20",
+    "pydantic-settings==2.10.1",
+    "sentence-transformers==5.1.0",
+    "uvicorn[standard]==0.35.0",
+    "nvidia-ml-py>=13.610.43",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.4.1",
+    "pytest-asyncio==1.1.0",
+]
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+asyncio_mode = "auto"
+pythonpath = ["."]

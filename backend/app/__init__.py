@@ -1,0 +1,1 @@
+"""EdgeRAG backend application package."""

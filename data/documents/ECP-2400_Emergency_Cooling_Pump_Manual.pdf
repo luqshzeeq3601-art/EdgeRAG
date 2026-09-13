@@ -1,0 +1,242 @@
+%PDF-1.3
+%‚„œ”
+1 0 obj
+<<
+/Producer (pypdf)
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Count 3
+/Kids [ 5 0 R 7 0 R 9 0 R ]
+>>
+endobj
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+4 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+5 0 obj
+<<
+/Type /Page
+/Resources <<
+/Font <<
+/F1 4 0 R
+>>
+>>
+/MediaBox [ 0.0 0.0 612 792 ]
+/Parent 2 0 R
+/Contents 6 0 R
+>>
+endobj
+6 0 obj
+<<
+/Length 1285
+>>
+stream
+BT 
+/F1 10 Tf 
+14 TL 
+54 740 Td 
+(ECP-2400 EMERGENCY COOLING PUMP SYSTEM - TECHNICAL MANUAL) Tj 
+T* 
+(Document ID: ECP-2400-OM-REV4 | Department: Industrial Fluid Dynamics) Tj 
+T* 
+() Tj 
+T* 
+(1. GENERAL SPECIFICATIONS AND PERFORMANCE) Tj 
+T* 
+(The Model ECP-2400 is an industrial emergency cooling pump skid designed for critical) Tj 
+T* 
+(heat exchange and thermal plant containment operations.) Tj 
+T* 
+() Tj 
+T* 
+(1.1 Operational Ratings) Tj 
+T* 
+(- Nominal operating speed: 2400 RPM \(direct drive synchronous coupling\).) Tj 
+T* 
+(- Maximum allowable operating pressure: 12.5 bar \(test pressure 18.75 bar\).) Tj 
+T* 
+(- Rated liquid flow rate: 350 L/min at nominal speed under standard ambient conditions.) Tj 
+T* 
+(- Maximum suction lift capability: 6.2 meters at sea level \(101.3 kPa barometric pressure\).) Tj 
+T* 
+(- Permissible particulate size in pumped media: maximum 0.5 mm non-abrasive suspended solids.) Tj 
+T* 
+() Tj 
+T* 
+(1.2 Skid Dimensions and Physical Characteristics) Tj 
+T* 
+(- Total skid assembly dry weight: 420 kg \(operating weight 465 kg with flooded casing\).) Tj 
+T* 
+(- Skid footprint dimensions: 1200 mm length by 800 mm width \(overall height 950 mm\).) Tj 
+T* 
+(- Suction flange diameter: DN80 PN16; Discharge flange diameter: DN50 PN16.) Tj 
+T* 
+ET
+endstream
+endobj
+7 0 obj
+<<
+/Type /Page
+/Resources <<
+/Font <<
+/F1 4 0 R
+>>
+>>
+/MediaBox [ 0.0 0.0 612 792 ]
+/Parent 2 0 R
+/Contents 8 0 R
+>>
+endobj
+8 0 obj
+<<
+/Length 1422
+>>
+stream
+BT 
+/F1 10 Tf 
+14 TL 
+54 740 Td 
+(ECP-2400 EMERGENCY COOLING PUMP SYSTEM - MAINTENANCE & LUBRICATION) Tj 
+T* 
+(Document ID: ECP-2400-OM-REV4 | Section 2: Servicing Schedules) Tj 
+T* 
+() Tj 
+T* 
+(2. LUBRICATION, SEALS, AND MECHANICAL WEAR LIMITS) Tj 
+T* 
+() Tj 
+T* 
+(2.1 Lubricant Specifications) Tj 
+T* 
+(- Specified lubricant for bearing housings: ISO VG 46 synthetic gear and bearing oil.) Tj 
+T* 
+(- Oil reservoir capacity: 1.8 liters per bearing housing.) Tj 
+T* 
+(- Oil change interval: 2000 operating hours or annually, whichever occurs first.) Tj 
+T* 
+() Tj 
+T* 
+(2.2 Mechanical Seal and Alignment Inspection) Tj 
+T* 
+(- Primary mechanical seal assembly inspection interval: conduct inspection every 500 operating hours.) Tj 
+T* 
+(- Check seal faces for scorch marks, carbon deposit buildup, or elastomer deterioration.) Tj 
+T* 
+(- Shaft alignment checks: conduct laser or dial indicator alignment checks every 3 months) Tj 
+T* 
+(  or immediately following any major maintenance intervention or motor relocation.) Tj 
+T* 
+() Tj 
+T* 
+(2.3 Fastener Torques and Impeller Wear Rings) Tj 
+T* 
+(- Casing flange M16 assembly bolts: tighten sequentially in a cross-star pattern to 85 Nm.) Tj 
+T* 
+(- Impeller wear ring replacement schedule: inspect radial clearance annually. Wear rings) Tj 
+T* 
+(  must be replaced whenever the measured radial clearance exceeds 0.8 mm \(nominal clearance is 0.25 to 0.35 mm\).) Tj 
+T* 
+ET
+endstream
+endobj
+9 0 obj
+<<
+/Type /Page
+/Resources <<
+/Font <<
+/F1 4 0 R
+>>
+>>
+/MediaBox [ 0.0 0.0 612 792 ]
+/Parent 2 0 R
+/Contents 10 0 R
+>>
+endobj
+10 0 obj
+<<
+/Length 1584
+>>
+stream
+BT 
+/F1 10 Tf 
+14 TL 
+54 740 Td 
+(ECP-2400 EMERGENCY COOLING PUMP SYSTEM - SAFETY, ELECTRICAL & STARTUP) Tj 
+T* 
+(Document ID: ECP-2400-OM-REV4 | Section 3: Commissioning Procedures) Tj 
+T* 
+() Tj 
+T* 
+(3. VIBRATION, THERMAL THRESHOLDS, ELECTRICAL SUPPLY & AIR BLEEDING) Tj 
+T* 
+() Tj 
+T* 
+(3.1 Vibration and Temperature Safety Thresholds) Tj 
+T* 
+(- Normal baseline overall vibration: below 2.2 mm/s RMS velocity.) Tj 
+T* 
+(- Cavitation warning threshold: vibration levels exceeding 4.5 mm/s RMS indicate severe cavitation;) Tj 
+T* 
+(  operators must immediately verify suction net positive suction head \(NPSH\) and throttle discharge.) Tj 
+T* 
+(- Emergency shutdown bearing temperature: 95 C \(alarm warning trips at 85 C; automatic trip at 95 C\).) Tj 
+T* 
+() Tj 
+T* 
+(3.2 Electrical Power Supply Requirements) Tj 
+T* 
+(- Power supply: 3-phase 400V AC at 50 Hz \(tolerance +/- 5%\).) Tj 
+T* 
+(- Motor power rating: 15 kW induction motor, rated full-load current 28.5 Amperes.) Tj 
+T* 
+() Tj 
+T* 
+(3.3 Mandatory Pre-Startup Air Bleeding Procedure) Tj 
+T* 
+(Before energizing the pump motor, all trapped air must be completely purged:) Tj 
+T* 
+(  Step 1: Open manual air vent valve V-2 located at the high point of the pump discharge casing.) Tj 
+T* 
+(  Step 2: Slowly crack open the suction line isolation valve to prime the impeller eye with fluid.) Tj 
+T* 
+(  Step 3: Allow liquid to displace trapped air until a solid, bubble-free fluid stream emerges from V-2.) Tj 
+T* 
+(  Step 4: Securely close manual vent valve V-2 and verify zero gland leakage prior to startup.) Tj 
+T* 
+ET
+endstream
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000015 00000 n 
+0000000054 00000 n 
+0000000125 00000 n 
+0000000174 00000 n 
+0000000244 00000 n 
+0000000376 00000 n 
+0000001713 00000 n 
+0000001845 00000 n 
+0000003319 00000 n 
+0000003452 00000 n 
+trailer
+<<
+/Size 11
+/Root 3 0 R
+/Info 1 0 R
+>>
+startxref
+5089
+%%EOF
