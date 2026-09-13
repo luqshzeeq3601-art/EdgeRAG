@@ -46,7 +46,14 @@ class ChunkingService:
         """Chunk each page independently and return chunks in page order."""
 
         chunks: list[DocumentChunk] = []
+        is_model_tok = hasattr(self.tokenizer, "tokenize") and callable(self.tokenizer)
+
         for page in pages:
+            if is_model_tok:
+                page_chunks = self._chunk_page_with_model_tokenizer(page)
+                chunks.extend(page_chunks)
+                continue
+
             page_tokens = self.tokenizer(page.text)
             if not page_tokens:
                 continue
@@ -84,6 +91,105 @@ class ChunkingService:
                     break
                 start = end - self.chunk_overlap_tokens
         return tuple(chunks)
+
+    def _chunk_page_with_model_tokenizer(self, page: ExtractedPage) -> list[DocumentChunk]:
+        """Chunk page using exact subword model tokens and character offset slicing."""
+        text = page.text.strip()
+        if not text:
+            return []
+
+        try:
+            enc = self.tokenizer(text, return_offsets_mapping=True, add_special_tokens=False)
+            offsets = enc.get("offset_mapping", [])
+        except Exception:
+            # Fallback if return_offsets_mapping is unsupported
+            tokens = self.tokenizer.tokenize(text)
+            offsets = []
+
+        if not offsets:
+            tokens = self.tokenizer.tokenize(text) if hasattr(self.tokenizer, "tokenize") else text.split()
+            chunks: list[DocumentChunk] = []
+            start = 0
+            page_chunk_number = 0
+            while start < len(tokens):
+                end = min(start + self.chunk_size_tokens, len(tokens))
+                chunk_slice = tokens[start:end]
+                chunks.append(
+                    DocumentChunk(
+                        page_number=page.page_number,
+                        ordinal=page_chunk_number,
+                        text=" ".join(chunk_slice),
+                        token_count=len(chunk_slice),
+                        token_start=start,
+                        token_end=end,
+                    )
+                )
+                page_chunk_number += 1
+                if end >= len(tokens):
+                    break
+                start = end - self.chunk_overlap_tokens
+            return chunks
+
+        total_tokens = len(offsets)
+        paragraph_splits = [m.start() for m in re.finditer(r"\n\s*\n", text)]
+        paragraph_token_boundaries: list[int] = []
+        for p_char in paragraph_splits:
+            for tok_idx, (s_char, _) in enumerate(offsets):
+                if s_char >= p_char:
+                    paragraph_token_boundaries.append(tok_idx)
+                    break
+
+        chunks: list[DocumentChunk] = []
+        start = 0
+        page_chunk_number = 0
+
+        while start < total_tokens:
+            end = min(start + self.chunk_size_tokens, total_tokens)
+            if end < total_tokens:
+                boundary = max(
+                    (
+                        boundary_idx
+                        for boundary_idx in paragraph_token_boundaries
+                        if start < boundary_idx <= end
+                        and boundary_idx - start > self.chunk_overlap_tokens
+                    ),
+                    default=start,
+                )
+                if boundary > start:
+                    end = boundary
+
+            start_char = offsets[start][0]
+            end_char = offsets[end - 1][1]
+            chunk_text = text[start_char:end_char].strip()
+
+            # Ensure re-tokenized text does not exceed chunk_size_tokens due to subword boundary artifacts
+            if hasattr(self.tokenizer, "tokenize"):
+                while end > start + 1:
+                    tok_len = len(self.tokenizer.tokenize(chunk_text))
+                    if tok_len <= self.chunk_size_tokens:
+                        break
+                    end -= 1
+                    end_char = offsets[end - 1][1]
+                    chunk_text = text[start_char:end_char].strip()
+
+            token_count = end - start
+
+            chunks.append(
+                DocumentChunk(
+                    page_number=page.page_number,
+                    ordinal=page_chunk_number,
+                    text=chunk_text,
+                    token_count=token_count,
+                    token_start=start,
+                    token_end=end,
+                )
+            )
+            page_chunk_number += 1
+            if end >= total_tokens:
+                break
+            start = end - self.chunk_overlap_tokens
+
+        return chunks
 
 
 def _default_tokenizer(text: str) -> list[str]:

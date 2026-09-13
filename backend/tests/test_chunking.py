@@ -4,6 +4,7 @@ import pytest
 
 from app.documents.chunking import ChunkingService
 from app.documents.ingestion import ExtractedPage
+from app.embeddings.service import EmbeddingService
 
 
 def numbered_tokens(prefix: str, count: int) -> str:
@@ -63,3 +64,26 @@ def test_short_page_returns_one_chunk() -> None:
 def test_invalid_window_is_rejected() -> None:
     with pytest.raises(ValueError, match="less than"):
         ChunkingService(chunk_size_tokens=40, chunk_overlap_tokens=40)
+
+
+def test_long_compound_technical_words_bounded_by_model_tokens() -> None:
+    embeddings = EmbeddingService()
+    service = ChunkingService(
+        chunk_size_tokens=220,
+        chunk_overlap_tokens=40,
+        tokenizer=embeddings.tokenizer,
+    )
+
+    # Long compound technical words that expand to numerous subword tokens
+    long_compound = "EmergencyCoolingPumpSkidHighPressureRecirculationAssemblyHydrochlorofluorocarbon"
+    text = " ".join([long_compound] * 50)
+    page = ExtractedPage(page_number=1, text=text)
+
+    chunks = service.chunk_pages([page])
+
+    assert len(chunks) > 1
+    for chunk in chunks:
+        assert chunk.token_count <= 220
+        # Verify subword token count via MiniLM tokenizer directly never exceeds 220
+        enc = embeddings.tokenizer.tokenize(chunk.text)
+        assert len(enc) <= 220

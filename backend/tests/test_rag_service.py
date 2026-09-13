@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
+from typing import AsyncIterator
+
 import pytest
 
+from app.providers.ollama import OllamaGenerateChunk, OllamaProvider
 from app.services.rag import (
     INSUFFICIENT_INFORMATION_MESSAGE,
     NO_CONTEXT_ABSTENTION_MESSAGE,
+    RAGService,
     SYSTEM_PROMPT,
     build_user_prompt,
     extract_citations,
@@ -96,3 +101,109 @@ def test_deterministic_abstention_on_empty_context() -> None:
     assert should_abstain([]) is True
     assert should_abstain([{"source_id": "S1"}]) is False
     assert "no relevant context was found" in NO_CONTEXT_ABSTENTION_MESSAGE
+
+
+def test_validate_citations_detects_malformed_tags() -> None:
+    text = "The temperature is 100 C [s1] and pressure is 5 bar [S-2]."
+    result = validate_citations(text, valid_source_ids=["S1", "S2"])
+
+    assert result.is_valid is False
+    assert "s1" in result.invalid_citations
+    assert "S-2" in result.invalid_citations
+    assert any("Malformed citation [s1]" in w for w in result.warnings)
+    assert any("Malformed citation [S-2]" in w for w in result.warnings)
+
+
+def test_validate_citations_requires_citations_for_non_abstaining() -> None:
+    # Non-abstaining statement without citation should fail validation
+    text = "The turbine operating limit is 3000 RPM."
+    result = validate_citations(text, valid_source_ids=["S1", "S2"])
+
+    assert result.is_valid is False
+    assert any("Non-abstaining answer must contain at least one valid citation" in w for w in result.warnings)
+
+    # Abstaining answer without citation should succeed
+    abstaining_text = "The provided context does not contain sufficient information to answer this question."
+    abstaining_result = validate_citations(abstaining_text, valid_source_ids=["S1", "S2"])
+    assert abstaining_result.is_valid is True
+    assert len(abstaining_result.warnings) == 0
+
+
+def test_should_abstain_on_low_similarity_threshold() -> None:
+    # High score -> do not abstain
+    relevant_passages = [{"source_id": "S1", "score": 0.65}]
+    assert should_abstain(relevant_passages, min_similarity=0.25) is False
+
+    # Low score below threshold -> abstain
+    irrelevant_passages = [{"source_id": "S1", "score": 0.12}, {"source_id": "S2", "score": 0.08}]
+    assert should_abstain(irrelevant_passages, min_similarity=0.25) is True
+
+
+@pytest.mark.asyncio
+async def test_rag_stream_premature_termination_emits_error() -> None:
+    class MockOllama(OllamaProvider):
+        def __init__(self) -> None:
+            super().__init__()
+
+        async def stream_generate(self, model: str, prompt: str, **_: object) -> AsyncIterator[OllamaGenerateChunk]:
+            # Yields partial delta without done=True
+            yield OllamaGenerateChunk(response="Partial text...", done=False)
+
+    class MockPipeline:
+        def __init__(self) -> None:
+            self.repository = type("Repo", (), {"get": lambda s, doc_id: None})()
+
+        def retrieve(self, query: str, top_k: int) -> list:
+            from app.vector_store import VectorMatch
+            from app.documents.repository import ChunkRecord
+            m = VectorMatch(vector_id=1, score=0.8)
+            c = ChunkRecord(
+                id=1,
+                document_id="d1",
+                chunk_id="chunk-1",
+                page_number=1,
+                ordinal=0,
+                text="Turbine manual text",
+                token_count=10,
+                vector_id=1,
+            )
+            return [(m, c)]
+
+    service = RAGService(pipeline=MockPipeline(), ollama_provider=MockOllama())
+    events = [event async for event in service.ask_stream("query", "test-model")]
+    event_types = [e[0] for e in events]
+    assert "error" in event_types
+    error_payload = next(e[1] for e in events if e[0] == "error")
+    assert error_payload.get("code") == "STREAM_PREMATURE_TERMINATION"
+
+
+@pytest.mark.asyncio
+async def test_rag_stream_timeout_emits_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    class HangingOllama(OllamaProvider):
+        def __init__(self) -> None:
+            super().__init__()
+
+        async def stream_generate(self, model: str, prompt: str, **_: object) -> AsyncIterator[OllamaGenerateChunk]:
+            await asyncio.sleep(5.0)
+            yield OllamaGenerateChunk(response="late", done=True)
+
+    class MockPipeline:
+        def __init__(self) -> None:
+            self.repository = type("Repo", (), {"get": lambda s, doc_id: None})()
+
+        def retrieve(self, query: str, top_k: int) -> list:
+            from app.vector_store import VectorMatch
+            from app.documents.repository import ChunkRecord
+            return [(VectorMatch(1, 0.9), ChunkRecord(1, "d1", "chunk-1", 1, 0, "text", 5, 1))]
+
+    service = RAGService(pipeline=MockPipeline(), ollama_provider=HangingOllama())
+
+    # Monkeypatch asyncio.timeout to 0.05 seconds to verify timeout trigger
+    original_timeout = asyncio.timeout
+    monkeypatch.setattr(asyncio, "timeout", lambda _: original_timeout(0.05))
+
+    events = [event async for event in service.ask_stream("query", "test-model")]
+    event_types = [e[0] for e in events]
+    assert "error" in event_types
+    error_payload = next(e[1] for e in events if e[0] == "error")
+    assert error_payload.get("code") == "GENERATION_TIMEOUT"

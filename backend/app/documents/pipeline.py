@@ -47,6 +47,11 @@ class DocumentPipeline:
     @classmethod
     def from_settings(cls, settings: Settings, repository: DocumentRepository) -> "DocumentPipeline":
         # Vector store loading is deferred to startup lifespan / initialize_and_validate_index
+        embeddings = EmbeddingService(
+            model_name=settings.embedding_model_name,
+            batch_size=settings.embedding_batch_size,
+            device=settings.embedding_device,
+        )
         return cls(
             repository=repository,
             ingestion=PDFIngestionService(
@@ -56,12 +61,9 @@ class DocumentPipeline:
             chunking=ChunkingService(
                 chunk_size_tokens=settings.chunk_size_tokens,
                 chunk_overlap_tokens=settings.chunk_overlap_tokens,
+                tokenizer=embeddings.tokenizer,
             ),
-            embeddings=EmbeddingService(
-                model_name=settings.embedding_model_name,
-                batch_size=settings.embedding_batch_size,
-                device=settings.embedding_device,
-            ),
+            embeddings=embeddings,
             vector_store=None,
             vector_index_path=settings.vector_index_path,
             document_storage_path=settings.document_storage_path,

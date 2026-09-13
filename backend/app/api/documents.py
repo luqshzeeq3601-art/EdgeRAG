@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
@@ -76,7 +77,8 @@ async def upload_document(
         raise HTTPException(status_code=400, detail="filename is required")
     data = await file.read()
     try:
-        return _summary(pipeline.ingest(data, filename=file.filename))
+        record = await asyncio.to_thread(pipeline.ingest, data, filename=file.filename)
+        return _summary(record)
     except DuplicateDocumentError:
         raise HTTPException(status_code=409, detail="document with same SHA-256 already exists") from None
     except ValueError as exc:
@@ -125,12 +127,12 @@ def delete_document(document_id: str, pipeline: DocumentPipeline = Depends(get_p
 
 
 @router.post("/retrieval", response_model=RetrievalResponse)
-def retrieve(
+async def retrieve(
     request: RetrievalRequest,
     pipeline: DocumentPipeline = Depends(get_pipeline),
 ) -> RetrievalResponse:
     try:
-        matches = pipeline.retrieve(request.query, request.top_k)
+        matches = await asyncio.to_thread(pipeline.retrieve, request.query, request.top_k)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     sources = [
