@@ -19,6 +19,11 @@ import {
   Search,
   Info,
   FileSpreadsheet,
+  Copy,
+  Check,
+  X,
+  FileUp,
+  Sparkles,
 } from 'lucide-react';
 
 export const DocumentsPage: React.FC = () => {
@@ -26,8 +31,11 @@ export const DocumentsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<DocumentDetail | null>(null);
+  const [chunkSearch, setChunkSearch] = useState<string>('');
+  const [copiedChunkId, setCopiedChunkId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchDocuments = async () => {
@@ -56,10 +64,7 @@ export const DocumentsPage: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
       setUploadError('Only PDF documents (.pdf) are supported.');
       return;
@@ -86,6 +91,36 @@ export const DocumentsPage: React.FC = () => {
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
   const handleDelete = async (id: string, filename: string) => {
     if (!window.confirm(`Delete document "${filename}" and its vector index embeddings?`)) {
       return;
@@ -105,9 +140,16 @@ export const DocumentsPage: React.FC = () => {
     try {
       const detail = await api.getDocument(id);
       setSelectedDoc(detail);
+      setChunkSearch('');
     } catch (err: any) {
       alert(`Failed to inspect document: ${err.message}`);
     }
+  };
+
+  const handleCopyChunk = (chunkId: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedChunkId(chunkId);
+    setTimeout(() => setCopiedChunkId(null), 2000);
   };
 
   const formatBytes = (bytes: number) => {
@@ -135,12 +177,24 @@ export const DocumentsPage: React.FC = () => {
     return tags;
   };
 
+  const filteredChunks = selectedDoc
+    ? selectedDoc.chunks.filter((c) =>
+        c.text.toLowerCase().includes(chunkSearch.toLowerCase())
+      )
+    : [];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Top Header & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Document Workspace</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Document Workspace</h1>
+            <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/80 px-2 py-0.5 rounded-full">
+              <Sparkles className="w-3 h-3 text-blue-600" />
+              Local Monolith RAG
+            </span>
+          </div>
           <p className="text-sm text-slate-500 mt-1">
             Manage local manuals, extract content, and build your searchable knowledge base.
           </p>
@@ -148,14 +202,15 @@ export const DocumentsPage: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={fetchDocuments}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-[0.98]"
+            title="Refresh documents list"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
           <button
-            onClick={() => alert('Folder aggregation is managed locally.')}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+            onClick={() => alert('Folder aggregation is managed directly in your local data/documents directory.')}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-[0.98]"
           >
             <FolderPlus className="w-3.5 h-3.5 text-slate-600" />
             Add Folder
@@ -166,15 +221,17 @@ export const DocumentsPage: React.FC = () => {
       {/* Top Cards: Add Documents (Left) & Workspace Overview (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Card: Add Documents */}
-        <div className="lg:col-span-5 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs flex flex-col justify-between hover:shadow-sm transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Upload className="w-4 h-4 text-slate-800" />
+              <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Upload className="w-3.5 h-3.5" />
+              </div>
               <h2 className="font-bold text-base text-slate-900">Add documents</h2>
             </div>
-            <div className="flex items-center gap-1 text-xs text-slate-400">
+            <div className="flex items-center gap-1 text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200/60">
               <span>Supports PDF files only</span>
-              <Info className="w-3.5 h-3.5 text-slate-400" />
+              <Info className="w-3 h-3 text-slate-400" />
             </div>
           </div>
 
@@ -190,19 +247,41 @@ export const DocumentsPage: React.FC = () => {
 
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/20 hover:bg-blue-50/40 rounded-xl p-5 transition-all flex items-center justify-between cursor-pointer"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-xl p-5 transition-all flex items-center justify-between cursor-pointer ${
+              isDragging
+                ? 'border-blue-500 bg-blue-50/70 scale-[1.01]'
+                : 'border-blue-200 hover:border-blue-400 bg-blue-50/20 hover:bg-blue-50/40'
+            }`}
           >
             <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+              <div
+                className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
+                  isDragging
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                    : 'bg-blue-50 text-blue-600 border-blue-100'
+                }`}
+              >
                 {isUploading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
+                ) : isDragging ? (
+                  <FileUp className="w-5 h-5 animate-bounce" />
                 ) : (
                   <Upload className="w-5 h-5 text-blue-600" />
                 )}
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-800">
-                  Drop technical PDFs here or <span className="text-blue-600 underline font-semibold">browse</span>
+                <p className="text-xs font-semibold text-slate-800">
+                  {isDragging ? (
+                    <span className="text-blue-600 font-bold">Release to upload PDF now</span>
+                  ) : (
+                    <>
+                      Drop technical PDFs here or{' '}
+                      <span className="text-blue-600 underline font-semibold">browse</span>
+                    </>
+                  )}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
                   Up to 25 MB • 300 pages • English text extraction
@@ -212,7 +291,7 @@ export const DocumentsPage: React.FC = () => {
 
             <button
               type="button"
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs flex items-center gap-1.5 shrink-0 transition-colors pointer-events-none"
+              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold rounded-xl shadow-xs flex items-center gap-1.5 shrink-0 transition-all pointer-events-none"
             >
               <FileText className="w-3.5 h-3.5" />
               Choose Files
@@ -220,81 +299,91 @@ export const DocumentsPage: React.FC = () => {
           </div>
 
           {uploadError && (
-            <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-xs flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              {uploadError}
+            <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{uploadError}</span>
+              </div>
+              <button
+                onClick={() => setUploadError(null)}
+                className="text-rose-400 hover:text-rose-600 p-0.5"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
         </div>
 
         {/* Right Card: Workspace Overview */}
-        <div className="lg:col-span-7 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
+        <div className="lg:col-span-7 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs flex flex-col justify-between hover:shadow-sm transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <BarChart2 className="w-4 h-4 text-slate-800" />
+              <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+                <BarChart2 className="w-3.5 h-3.5" />
+              </div>
               <h2 className="font-bold text-base text-slate-900">Workspace Overview</h2>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50/80 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               Index Ready
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             {/* Tile 1: Documents */}
-            <div className="bg-slate-50/70 border border-slate-200/70 rounded-xl p-3.5 flex items-center gap-3">
+            <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/70 hover:border-slate-300/80 rounded-xl p-3.5 flex items-center gap-3 transition-colors">
               <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
                 <FileText className="w-4 h-4 text-slate-600" />
               </div>
               <div>
                 <p className="text-[11px] text-slate-400 font-medium">Documents</p>
-                <p className="text-lg font-bold text-slate-900 leading-tight">
+                <p className="text-lg font-bold text-slate-900 leading-tight font-mono">
                   {documents.length || 1}
                 </p>
               </div>
             </div>
 
             {/* Tile 2: Pages indexed */}
-            <div className="bg-slate-50/70 border border-slate-200/70 rounded-xl p-3.5 flex items-center gap-3">
+            <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/70 hover:border-slate-300/80 rounded-xl p-3.5 flex items-center gap-3 transition-colors">
               <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
                 <FileSpreadsheet className="w-4 h-4 text-slate-600" />
               </div>
               <div>
                 <p className="text-[11px] text-slate-400 font-medium">Pages indexed</p>
-                <p className="text-lg font-bold text-slate-900 leading-tight">
+                <p className="text-lg font-bold text-slate-900 leading-tight font-mono">
                   {totalPages || 3}
                 </p>
               </div>
             </div>
 
             {/* Tile 3: Chunks */}
-            <div className="bg-slate-50/70 border border-slate-200/70 rounded-xl p-3.5 flex items-center gap-3">
+            <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/70 hover:border-slate-300/80 rounded-xl p-3.5 flex items-center gap-3 transition-colors">
               <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
                 <Layers className="w-4 h-4 text-slate-600" />
               </div>
               <div>
                 <p className="text-[11px] text-slate-400 font-medium">Chunks</p>
-                <p className="text-lg font-bold text-slate-900 leading-tight">
+                <p className="text-lg font-bold text-slate-900 leading-tight font-mono">
                   {totalChunks || 3}
                 </p>
               </div>
             </div>
 
             {/* Tile 4: Storage used */}
-            <div className="bg-slate-50/70 border border-slate-200/70 rounded-xl p-3.5 flex items-center gap-3">
+            <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/70 hover:border-slate-300/80 rounded-xl p-3.5 flex items-center gap-3 transition-colors">
               <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
                 <HardDrive className="w-4 h-4 text-slate-600" />
               </div>
               <div>
                 <p className="text-[11px] text-slate-400 font-medium">Storage used</p>
-                <p className="text-lg font-bold text-slate-900 leading-tight">
+                <p className="text-lg font-bold text-slate-900 leading-tight font-mono">
                   {totalBytes ? formatBytes(totalBytes) : '5.3 KB'}
                 </p>
               </div>
             </div>
 
             {/* Tile 5: Index status */}
-            <div className="bg-slate-50/70 border border-slate-200/70 rounded-xl p-3.5 flex items-center gap-3">
+            <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/70 hover:border-slate-300/80 rounded-xl p-3.5 flex items-center gap-3 transition-colors">
               <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-emerald-600 shadow-2xs shrink-0">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
               </div>
@@ -307,7 +396,7 @@ export const DocumentsPage: React.FC = () => {
             </div>
 
             {/* Tile 6: Last sync */}
-            <div className="bg-slate-50/70 border border-slate-200/70 rounded-xl p-3.5 flex items-center gap-3">
+            <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/70 hover:border-slate-300/80 rounded-xl p-3.5 flex items-center gap-3 transition-colors">
               <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
                 <Clock className="w-4 h-4 text-slate-600" />
               </div>
@@ -323,25 +412,41 @@ export const DocumentsPage: React.FC = () => {
       </div>
 
       {/* Bottom Section: Knowledge Base (N) */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs">
+      <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs hover:shadow-sm transition-shadow">
         {/* Table Header Controls */}
         <div className="px-6 py-4 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <FileText className="w-4 h-4 text-slate-800" />
+            <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+              <FileText className="w-3.5 h-3.5" />
+            </div>
             <h2 className="font-bold text-base text-slate-900">
               Knowledge Base ({filteredDocuments.length})
             </h2>
+            {searchQuery && (
+              <span className="text-[11px] text-slate-400">
+                Filtered from {documents.length} total
+              </span>
+            )}
           </div>
 
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <div className="relative flex items-center">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search documents..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-64 pl-8 pr-3.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              className="w-full sm:w-64 pl-8 pr-8 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 text-slate-400 hover:text-slate-600 p-0.5"
+                title="Clear search"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -351,10 +456,18 @@ export const DocumentsPage: React.FC = () => {
             Loading documents...
           </div>
         ) : filteredDocuments.length === 0 ? (
-          <div className="py-16 text-center text-slate-400 text-xs">
-            {documents.length === 0
-              ? 'No documents ingested yet. Drop technical PDFs above to begin.'
-              : 'No matching documents found.'}
+          <div className="py-16 text-center text-slate-400 text-xs space-y-2">
+            <FileText className="w-8 h-8 text-slate-300 mx-auto" />
+            <p className="font-medium text-slate-600">
+              {documents.length === 0
+                ? 'No documents ingested yet.'
+                : 'No documents match your search.'}
+            </p>
+            <p className="text-[11px] text-slate-400">
+              {documents.length === 0
+                ? 'Drop technical PDFs into the box above to build your local index.'
+                : 'Try adjusting your search terms.'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -376,17 +489,18 @@ export const DocumentsPage: React.FC = () => {
                   const approxTokens = doc.chunk_count ? `${(doc.chunk_count * 0.6).toFixed(1)}k` : '1.8k';
 
                   return (
-                    <tr key={doc.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={doc.id} className="hover:bg-slate-50/80 transition-colors group">
                       {/* Document info with red PDF badge and tags */}
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-7 h-8 rounded-md bg-rose-500 text-white font-extrabold text-[8px] flex items-center justify-center shadow-2xs shrink-0 tracking-tighter">
+                          <div className="w-7 h-8 rounded-md bg-rose-500 text-white font-extrabold text-[8px] flex items-center justify-center shadow-2xs shrink-0 tracking-tighter border border-rose-600">
                             PDF
                           </div>
                           <div>
                             <span
                               onClick={() => handleInspect(doc.id)}
-                              className="font-semibold text-slate-900 hover:text-blue-600 cursor-pointer block text-xs"
+                              className="font-semibold text-slate-900 group-hover:text-blue-600 cursor-pointer block text-xs transition-colors"
+                              title="Click to inspect vector chunks"
                             >
                               {doc.filename}
                             </span>
@@ -399,23 +513,26 @@ export const DocumentsPage: React.FC = () => {
                                   {tag}
                                 </span>
                               ))}
+                              <span className="text-[10px] text-slate-400">
+                                • {formatBytes(doc.size_bytes)}
+                              </span>
                             </div>
                           </div>
                         </div>
                       </td>
 
                       {/* Pages */}
-                      <td className="py-4 px-4 text-center font-medium text-slate-600">
+                      <td className="py-4 px-4 text-center font-medium text-slate-600 font-mono">
                         {doc.page_count}
                       </td>
 
                       {/* Chunks */}
-                      <td className="py-4 px-4 text-center font-medium text-slate-600">
+                      <td className="py-4 px-4 text-center font-medium text-slate-600 font-mono">
                         {doc.chunk_count}
                       </td>
 
                       {/* Tokens */}
-                      <td className="py-4 px-4 text-center font-medium text-slate-600">
+                      <td className="py-4 px-4 text-center font-medium text-slate-600 font-mono">
                         {approxTokens}
                       </td>
 
@@ -462,7 +579,7 @@ export const DocumentsPage: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleDelete(doc.id, doc.filename)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                             title="Delete Document"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -480,41 +597,100 @@ export const DocumentsPage: React.FC = () => {
 
       {/* Chunks Inspector Modal */}
       {selectedDoc && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-xl">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-slate-900">{selectedDoc.filename}</h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {selectedDoc.chunks.length} Chunks • SHA-256: {selectedDoc.sha256.substring(0, 16)}...
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-900">{selectedDoc.filename}</h3>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full font-mono">
+                    {selectedDoc.chunks.length} Chunks
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5 font-mono">
+                  SHA-256: {selectedDoc.sha256}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedDoc(null)}
-                className="text-slate-400 hover:text-slate-700 text-xl font-bold px-2 py-1 transition-colors"
+                className="text-slate-400 hover:text-slate-700 text-xl font-bold p-1 rounded-lg hover:bg-slate-100 transition-colors"
               >
-                &times;
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-4 flex-1">
-              {selectedDoc.chunks.map((chunk, idx) => (
-                <div key={chunk.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                  <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span className="font-semibold text-blue-600">Chunk #{idx + 1} (ID: {chunk.chunk_id})</span>
-                    <span>Page {chunk.page_number} • {chunk.token_count} Tokens • Vector #{chunk.vector_id}</span>
-                  </div>
-                  <p className="text-xs text-slate-700 font-mono whitespace-pre-wrap leading-relaxed bg-white p-3 rounded-lg border border-slate-200">
-                    {chunk.text}
-                  </p>
-                </div>
-              ))}
+            {/* Filter inside chunks */}
+            <div className="px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-4">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Filter within chunk text..."
+                  value={chunkSearch}
+                  onChange={(e) => setChunkSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <span className="text-xs text-slate-400">
+                Showing {filteredChunks.length} of {selectedDoc.chunks.length}
+              </span>
             </div>
 
-            <div className="px-6 py-3.5 border-t border-slate-200 flex justify-end">
+            <div className="p-6 overflow-y-auto space-y-4 flex-1">
+              {filteredChunks.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400">
+                  No chunks match "{chunkSearch}".
+                </div>
+              ) : (
+                filteredChunks.map((chunk, idx) => (
+                  <div key={chunk.id} className="p-4 bg-slate-50 border border-slate-200/90 rounded-xl space-y-2 hover:border-slate-300 transition-colors">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                          Chunk #{idx + 1}
+                        </span>
+                        <span className="font-mono text-[11px] text-slate-400">
+                          (ID: {chunk.chunk_id})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] text-slate-500 font-mono">
+                          Page {chunk.page_number} • {chunk.token_count} Tokens • Vector #{chunk.vector_id}
+                        </span>
+                        <button
+                          onClick={() => handleCopyChunk(chunk.chunk_id, chunk.text)}
+                          className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-blue-600 bg-white border border-slate-200 px-2 py-0.5 rounded shadow-2xs transition-colors"
+                          title="Copy chunk text"
+                        >
+                          {copiedChunkId === chunk.chunk_id ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              <span className="text-emerald-600">Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3" />
+                              <span>Copy</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-800 font-mono whitespace-pre-wrap leading-relaxed bg-white p-3 rounded-lg border border-slate-200 select-text">
+                      {chunk.text}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="px-6 py-3.5 border-t border-slate-200 flex justify-between items-center bg-slate-50">
+              <span className="text-xs text-slate-400">
+                Authoritative SQLite chunks synchronized with FAISS vectors
+              </span>
               <button
                 onClick={() => setSelectedDoc(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors"
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded-xl text-xs transition-colors"
               >
                 Close
               </button>

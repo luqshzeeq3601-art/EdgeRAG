@@ -94,7 +94,7 @@ export const App: React.FC = () => {
           {/* Telemetry Pill & Settings */}
           <div className="flex items-center gap-2">
             <div
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-white shadow-xs text-xs"
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white shadow-xs text-xs hover:border-slate-300 transition-colors cursor-help"
               title={
                 health?.status === 'healthy'
                   ? 'All local systems ready (SQLite WAL + Ollama daemon)'
@@ -114,10 +114,15 @@ export const App: React.FC = () => {
                       : 'bg-slate-400'
                   }`}
                 ></span>
-                <span className="font-semibold text-slate-800">RTX 3070</span>
+                <span className="font-bold text-slate-800">RTX 3070</span>
               </div>
               <span className="text-slate-300">•</span>
-              <span className="text-slate-600 font-medium">1.2 / 8.0 GB VRAM</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-10 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/80">
+                  <div className="bg-emerald-500 h-full rounded-full" style={{ width: '15%' }}></div>
+                </div>
+                <span className="text-slate-600 font-medium font-mono text-[11px]">1.2 / 8.0 GB</span>
+              </div>
             </div>
 
             <button
