@@ -146,8 +146,8 @@ export const App: React.FC = () => {
       <footer className="border-t border-slate-200 py-4 px-6 md:px-8 text-xs text-slate-400">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <span>EdgeRAG v1.0 • Local Engine (Offline)</span>
-          <span className="text-[11px] text-slate-400 hidden sm:inline">
-            SentenceTransformers (MiniLM-L6) + FAISS + SQLite WAL + Ollama
+          <span className="text-[11px] text-slate-500 font-mono tabular-nums">
+            Engine: Local • Latency: &lt;5ms
           </span>
         </div>
       </footer>

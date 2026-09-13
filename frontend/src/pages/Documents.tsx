@@ -11,13 +11,11 @@ import {
   Loader2,
   Eye,
   RefreshCw,
-  FolderPlus,
   BarChart2,
   Layers,
   HardDrive,
   Clock,
   Search,
-  Info,
   FileSpreadsheet,
   Copy,
   Check,
@@ -208,31 +206,38 @@ export const DocumentsPage: React.FC = () => {
             <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <button
-            onClick={() => alert('Folder aggregation is managed directly in your local data/documents directory.')}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-[0.98]"
-          >
-            <FolderPlus className="w-3.5 h-3.5 text-slate-600" />
-            Add Folder
-          </button>
         </div>
       </div>
 
-      {/* Top Cards: Add Documents (Left) & Workspace Overview (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Card: Add Documents */}
-        <div className="lg:col-span-5 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs flex flex-col justify-between hover:shadow-sm transition-shadow">
-          <div className="flex items-center justify-between mb-4">
+      {/* Top Section: Single Dropzone Card (Left) & Unified Metrics Grid (Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* Left: Cohesive Single Dropzone Card (No nested card border) */}
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`lg:col-span-5 bg-white border rounded-2xl p-6 shadow-xs flex flex-col justify-between transition-all cursor-pointer group ${
+            isDragging
+              ? 'border-blue-500 bg-blue-50/50 shadow-md ring-2 ring-blue-500/20'
+              : 'border-slate-200 hover:border-blue-400/80 hover:bg-slate-50/40'
+          }`}
+        >
+          {/* Card Header */}
+          <div className="flex items-center justify-between pointer-events-none">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <div
+                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                  isDragging ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 group-hover:bg-blue-100'
+                }`}
+              >
                 <Upload className="w-3.5 h-3.5" />
               </div>
-              <h2 className="font-bold text-base text-slate-900">Add documents</h2>
+              <h2 className="font-bold text-sm text-slate-900">Add documents</h2>
             </div>
-            <div className="flex items-center gap-1 text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200/60">
-              <span>Supports PDF files only</span>
-              <Info className="w-3 h-3 text-slate-400" />
-            </div>
+            <span className="text-[11px] text-slate-400 bg-slate-50 px-2.5 py-0.5 rounded-full border border-slate-200/70 font-medium">
+              PDF only • Max 25 MB
+            </span>
           </div>
 
           <input
@@ -245,53 +250,44 @@ export const DocumentsPage: React.FC = () => {
             disabled={isUploading}
           />
 
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-xl p-5 transition-all flex items-center justify-between cursor-pointer ${
-              isDragging
-                ? 'border-blue-500 bg-blue-50/70 scale-[1.01]'
-                : 'border-blue-200 hover:border-blue-400 bg-blue-50/20 hover:bg-blue-50/40'
-            }`}
-          >
-            <div className="flex items-center gap-3.5">
-              <div
-                className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
-                  isDragging
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                    : 'bg-blue-50 text-blue-600 border-blue-100'
-                }`}
-              >
-                {isUploading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : isDragging ? (
-                  <FileUp className="w-5 h-5 animate-bounce" />
-                ) : (
-                  <Upload className="w-5 h-5 text-blue-600" />
-                )}
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-800">
-                  {isDragging ? (
-                    <span className="text-blue-600 font-bold">Release to upload PDF now</span>
-                  ) : (
-                    <>
-                      Drop technical PDFs here or{' '}
-                      <span className="text-blue-600 underline font-semibold">browse</span>
-                    </>
-                  )}
-                </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Up to 25 MB • 300 pages • English text extraction
-                </p>
-              </div>
+          {/* Central Drop Zone Content (No nested inner card) */}
+          <div className="py-7 flex flex-col items-center justify-center text-center pointer-events-none">
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-all ${
+                isDragging
+                  ? 'bg-blue-600 text-white scale-110 shadow-lg shadow-blue-500/25'
+                  : 'bg-blue-50 text-blue-600 border border-blue-100 group-hover:scale-105 group-hover:bg-blue-100/70'
+              }`}
+            >
+              {isUploading ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : isDragging ? (
+                <FileUp className="w-6 h-6 animate-bounce" />
+              ) : (
+                <Upload className="w-6 h-6" />
+              )}
             </div>
+            <p className="text-sm font-semibold text-slate-800">
+              {isUploading ? (
+                'Extracting and indexing PDF...'
+              ) : isDragging ? (
+                <span className="text-blue-600 font-bold">Release to upload PDF now</span>
+              ) : (
+                'Drop technical PDFs here'
+              )}
+            </p>
+            <p className="text-xs text-slate-400 mt-1">
+              Supports searchable text up to 300 pages
+            </p>
+          </div>
 
+          {/* Bottom Action Bar: Single Clear CTA Button */}
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-[11px] text-slate-400">or select from file system</span>
             <button
               type="button"
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold rounded-xl shadow-xs flex items-center gap-1.5 shrink-0 transition-all pointer-events-none"
+              disabled={isUploading}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold rounded-xl shadow-xs flex items-center gap-1.5 transition-all"
             >
               <FileText className="w-3.5 h-3.5" />
               Choose Files
@@ -299,7 +295,10 @@ export const DocumentsPage: React.FC = () => {
           </div>
 
           {uploadError && (
-            <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-xs flex items-center justify-between gap-2">
+            <div
+              className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-xs flex items-center justify-between gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{uploadError}</span>
@@ -314,7 +313,7 @@ export const DocumentsPage: React.FC = () => {
           )}
         </div>
 
-        {/* Right Card: Workspace Overview */}
+        {/* Right: Workspace Overview (Clean Divider Grid instead of Floating Bubbles) */}
         <div className="lg:col-span-7 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs flex flex-col justify-between hover:shadow-sm transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -329,80 +328,75 @@ export const DocumentsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            {/* Tile 1: Documents */}
-            <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/70 hover:border-slate-300/80 rounded-xl p-3.5 flex items-center gap-3 transition-colors">
-              <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
-                <FileText className="w-4 h-4 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-[11px] text-slate-400 font-medium">Documents</p>
-                <p className="text-lg font-bold text-slate-900 leading-tight font-mono">
+          {/* Unified 2x3 Metric Grid with 1px Divider Lines */}
+          <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-200 bg-slate-50/30">
+            {/* Top Row: Documents, Pages indexed, Chunks */}
+            <div className="grid grid-cols-3 divide-x divide-slate-200">
+              {/* Cell 1: Documents */}
+              <div className="p-4 hover:bg-white transition-colors">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1.5">
+                  <FileText className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Documents</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900 font-mono tabular-nums leading-none">
                   {documents.length || 1}
                 </p>
               </div>
-            </div>
 
-            {/* Tile 2: Pages indexed */}
-            <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/70 hover:border-slate-300/80 rounded-xl p-3.5 flex items-center gap-3 transition-colors">
-              <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
-                <FileSpreadsheet className="w-4 h-4 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-[11px] text-slate-400 font-medium">Pages indexed</p>
-                <p className="text-lg font-bold text-slate-900 leading-tight font-mono">
+              {/* Cell 2: Pages indexed */}
+              <div className="p-4 hover:bg-white transition-colors">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1.5">
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Pages indexed</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900 font-mono tabular-nums leading-none">
                   {totalPages || 3}
                 </p>
               </div>
-            </div>
 
-            {/* Tile 3: Chunks */}
-            <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/70 hover:border-slate-300/80 rounded-xl p-3.5 flex items-center gap-3 transition-colors">
-              <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
-                <Layers className="w-4 h-4 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-[11px] text-slate-400 font-medium">Chunks</p>
-                <p className="text-lg font-bold text-slate-900 leading-tight font-mono">
+              {/* Cell 3: Chunks */}
+              <div className="p-4 hover:bg-white transition-colors">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1.5">
+                  <Layers className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Chunks</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900 font-mono tabular-nums leading-none">
                   {totalChunks || 3}
                 </p>
               </div>
             </div>
 
-            {/* Tile 4: Storage used */}
-            <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/70 hover:border-slate-300/80 rounded-xl p-3.5 flex items-center gap-3 transition-colors">
-              <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
-                <HardDrive className="w-4 h-4 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-[11px] text-slate-400 font-medium">Storage used</p>
-                <p className="text-lg font-bold text-slate-900 leading-tight font-mono">
+            {/* Bottom Row: Storage used, Index status, Last sync */}
+            <div className="grid grid-cols-3 divide-x divide-slate-200">
+              {/* Cell 4: Storage used */}
+              <div className="p-4 hover:bg-white transition-colors">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1.5">
+                  <HardDrive className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Storage used</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900 font-mono tabular-nums leading-none">
                   {totalBytes ? formatBytes(totalBytes) : '5.3 KB'}
                 </p>
               </div>
-            </div>
 
-            {/* Tile 5: Index status */}
-            <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/70 hover:border-slate-300/80 rounded-xl p-3.5 flex items-center gap-3 transition-colors">
-              <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-emerald-600 shadow-2xs shrink-0">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-[11px] text-slate-400 font-medium">Index status</p>
-                <p className="text-lg font-bold text-emerald-600 leading-tight">
+              {/* Cell 5: Index status */}
+              <div className="p-4 hover:bg-white transition-colors">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Index status</span>
+                </div>
+                <p className="text-2xl font-bold text-emerald-600 leading-none">
                   Healthy
                 </p>
               </div>
-            </div>
 
-            {/* Tile 6: Last sync */}
-            <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/70 hover:border-slate-300/80 rounded-xl p-3.5 flex items-center gap-3 transition-colors">
-              <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
-                <Clock className="w-4 h-4 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-[11px] text-slate-400 font-medium">Last sync</p>
-                <p className="text-lg font-bold text-slate-900 leading-tight">
+              {/* Cell 6: Last sync */}
+              <div className="p-4 hover:bg-white transition-colors">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1.5">
+                  <Clock className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Last sync</span>
+                </div>
+                <p className="text-xl font-bold text-slate-900 tabular-nums leading-none">
                   Just now
                 </p>
               </div>
@@ -522,22 +516,22 @@ export const DocumentsPage: React.FC = () => {
                       </td>
 
                       {/* Pages */}
-                      <td className="py-4 px-4 text-center font-medium text-slate-600 font-mono">
+                      <td className="py-4 px-4 text-center font-medium text-slate-600 font-mono tabular-nums">
                         {doc.page_count}
                       </td>
 
                       {/* Chunks */}
-                      <td className="py-4 px-4 text-center font-medium text-slate-600 font-mono">
+                      <td className="py-4 px-4 text-center font-medium text-slate-600 font-mono tabular-nums">
                         {doc.chunk_count}
                       </td>
 
                       {/* Tokens */}
-                      <td className="py-4 px-4 text-center font-medium text-slate-600 font-mono">
+                      <td className="py-4 px-4 text-center font-medium text-slate-600 font-mono tabular-nums">
                         {approxTokens}
                       </td>
 
                       {/* Added */}
-                      <td className="py-4 px-4 font-medium text-slate-600">
+                      <td className="py-4 px-4 font-medium text-slate-600 font-mono tabular-nums">
                         Today, 09:41
                       </td>
 
@@ -654,7 +648,7 @@ export const DocumentsPage: React.FC = () => {
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-slate-500 font-mono">
+                        <span className="text-[11px] text-slate-500 font-mono tabular-nums">
                           Page {chunk.page_number} • {chunk.token_count} Tokens • Vector #{chunk.vector_id}
                         </span>
                         <button
