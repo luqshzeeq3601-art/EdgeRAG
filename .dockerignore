@@ -1,0 +1,15 @@
+**/.git
+**/.gitignore
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache
+backend/.venv/
+frontend/node_modules/
+frontend/dist/
+data/
+.uv-cache/
+.uv-python/
+.uv-tools/
+graphify-out/

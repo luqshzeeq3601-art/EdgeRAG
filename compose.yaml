@@ -1,0 +1,23 @@
+services:
+  edgerag:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edgerag-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - EDGERAG_OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - EDGERAG_DATABASE_PATH=/app/data/db/edgerag.sqlite3
+      - EDGERAG_DOCUMENT_STORAGE_PATH=/app/data/documents
+      - EDGERAG_VECTOR_INDEX_PATH=/app/data/indexes/edgerag.faiss
+      - EDGERAG_STATIC_FILES_PATH=/app/frontend/dist
+      - HF_HOME=/app/.hf-cache
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+    volumes:
+      - ./data:/app/data
+      - ./.hf-cache:/app/.hf-cache
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
