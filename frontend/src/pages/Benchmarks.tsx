@@ -194,16 +194,16 @@ export const BenchmarksPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Benchmark Dashboard</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Benchmark Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-1">
             Reproducible local LLM benchmarking with warm/cold controls, fixed context, and hardware telemetry.
           </p>
         </div>
         <button
           onClick={loadData}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-sm transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-colors"
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
           Refresh
         </button>
       </div>
@@ -211,20 +211,20 @@ export const BenchmarksPage: React.FC = () => {
       {/* Grid: Config Form & Benchmark History */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Run Configuration Form */}
-        <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg space-y-5">
-          <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-            <Sliders className="w-5 h-5 text-sky-400" />
-            <h2 className="font-semibold text-white text-base">Run New Benchmark</h2>
+        <div className="lg:col-span-1 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs space-y-5">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+            <Sliders className="w-4 h-4 text-blue-600" />
+            <h2 className="font-bold text-slate-900 text-sm">Run New Benchmark</h2>
           </div>
 
-          <form onSubmit={handleStartBenchmark} className="space-y-4 text-sm">
+          <form onSubmit={handleStartBenchmark} className="space-y-4 text-xs">
             {/* Suite Selection */}
             <div>
-              <label className="block text-slate-400 text-xs font-medium mb-1.5">Question Suite</label>
+              <label className="block text-slate-600 text-xs font-bold mb-1.5">Question Suite</label>
               <select
                 value={selectedSuite}
                 onChange={(e) => setSelectedSuite(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               >
                 {suites.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -236,20 +236,20 @@ export const BenchmarksPage: React.FC = () => {
 
             {/* Model Multi-Select */}
             <div>
-              <label className="block text-slate-400 text-xs font-medium mb-1.5">Models to Compare</label>
-              <div className="space-y-1.5 max-h-36 overflow-y-auto bg-slate-950/40 p-2.5 rounded-lg border border-slate-800">
+              <label className="block text-slate-600 text-xs font-bold mb-1.5">Models to Compare</label>
+              <div className="space-y-1.5 max-h-36 overflow-y-auto bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                 {models.length === 0 ? (
-                  <div className="text-xs text-slate-500">No Ollama models found</div>
+                  <div className="text-xs text-slate-400">No Ollama models found</div>
                 ) : (
                   models.map((m) => (
-                    <label key={m.name} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                    <label key={m.name} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer hover:text-slate-900">
                       <input
                         type="checkbox"
                         checked={selectedModels.includes(m.name)}
                         onChange={() => handleModelToggle(m.name)}
-                        className="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0"
+                        className="rounded border-slate-300 text-blue-600 focus:ring-0"
                       />
-                      <span className="truncate">{m.name}</span>
+                      <span className="truncate font-medium">{m.name}</span>
                     </label>
                   ))
                 )}
@@ -259,11 +259,11 @@ export const BenchmarksPage: React.FC = () => {
             {/* Retrieval Mode */}
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-slate-400 text-xs font-medium mb-1.5">Context Mode</label>
+                <label className="block text-slate-600 text-xs font-bold mb-1.5">Context Mode</label>
                 <select
                   value={mode}
                   onChange={(e) => setMode(e.target.value as any)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 text-xs"
                 >
                   <option value="fixed_context">Fixed Context</option>
                   <option value="end_to_end">End-to-End</option>
@@ -271,11 +271,11 @@ export const BenchmarksPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-400 text-xs font-medium mb-1.5">Temperature Type</label>
+                <label className="block text-slate-600 text-xs font-bold mb-1.5">Temperature Type</label>
                 <select
                   value={tempType}
                   onChange={(e) => setTempType(e.target.value as any)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 text-xs"
                 >
                   <option value="warm">Warm (1 Warmup)</option>
                   <option value="cold">Cold (Unload)</option>
@@ -286,25 +286,25 @@ export const BenchmarksPage: React.FC = () => {
             {/* Repetitions & Top-K */}
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-slate-400 text-xs font-medium mb-1.5">Evaluated Reps</label>
+                <label className="block text-slate-600 text-xs font-bold mb-1.5">Evaluated Reps</label>
                 <input
                   type="number"
                   min={1}
                   max={5}
                   value={repetitions}
                   onChange={(e) => setRepetitions(Number(e.target.value))}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 text-xs"
                 />
               </div>
               <div>
-                <label className="block text-slate-400 text-xs font-medium mb-1.5">Top-K</label>
+                <label className="block text-slate-600 text-xs font-bold mb-1.5">Top-K</label>
                 <input
                   type="number"
                   min={1}
                   max={10}
                   value={topK}
                   onChange={(e) => setTopK(Number(e.target.value))}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 text-xs"
                 />
               </div>
             </div>
@@ -312,61 +312,61 @@ export const BenchmarksPage: React.FC = () => {
             <button
               type="submit"
               disabled={isStarting || selectedModels.length === 0}
-              className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-semibold rounded-lg text-xs shadow transition-colors"
+              className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold rounded-xl text-xs shadow-xs transition-colors"
             >
-              {isStarting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
+              {isStarting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
               Launch Benchmark
             </button>
           </form>
         </div>
 
         {/* History List */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg flex flex-col">
-          <h2 className="font-semibold text-white text-base border-b border-slate-800 pb-3 mb-4">
+        <div className="lg:col-span-2 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs flex flex-col">
+          <h2 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-3 mb-4">
             Benchmark History ({benchmarks.length})
           </h2>
 
           {benchmarks.length === 0 ? (
-            <div className="text-center py-12 text-slate-500 text-sm">
+            <div className="text-center py-12 text-slate-400 text-xs">
               No benchmarks run yet. Configure and launch a comparison on the left.
             </div>
           ) : (
-            <div className="divide-y divide-slate-800/80 overflow-y-auto max-h-[380px] space-y-2 pr-1">
+            <div className="divide-y divide-slate-100 overflow-y-auto max-h-[380px] space-y-2 pr-1">
               {benchmarks.map((b) => {
                 const isSelected = activeBenchmark?.id === b.id;
                 return (
                   <div
                     key={b.id}
                     onClick={() => loadBenchmarkDetail(b.id)}
-                    className={`p-3 rounded-lg cursor-pointer transition-all flex items-center justify-between ${
-                      isSelected ? 'bg-slate-800/90 border border-sky-500/40' : 'hover:bg-slate-800/40'
+                    className={`p-3.5 rounded-xl cursor-pointer transition-all flex items-center justify-between ${
+                      isSelected ? 'bg-blue-50/60 border border-blue-200' : 'hover:bg-slate-50 border border-transparent'
                     }`}
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-white text-sm">{b.name}</span>
+                        <span className="font-semibold text-slate-900 text-xs">{b.name}</span>
                         {b.status === 'completed' && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             Completed
                           </span>
                         )}
                         {b.status === 'running' && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
                             <Loader2 className="w-2.5 h-2.5 animate-spin" /> Running
                           </span>
                         )}
                         {b.status === 'cancelled' && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                             Cancelled
                           </span>
                         )}
                         {b.status === 'failed' && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
                             Failed
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-[11px] text-slate-400 mt-0.5">
                         Suite: {b.suite_id} • Mode: {b.mode} • Profile: {b.temperature_type} • Models: {b.models.join(', ')}
                       </p>
                     </div>
@@ -378,7 +378,7 @@ export const BenchmarksPage: React.FC = () => {
                             e.stopPropagation();
                             handleCancel(b.id);
                           }}
-                          className="px-2 py-1 bg-rose-600/80 hover:bg-rose-500 text-white rounded text-xs flex items-center gap-1"
+                          className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1"
                         >
                           <Square className="w-3 h-3 fill-current" /> Cancel
                         </button>
@@ -388,7 +388,7 @@ export const BenchmarksPage: React.FC = () => {
                           e.stopPropagation();
                           handleDelete(b.id);
                         }}
-                        className="p-1.5 text-slate-400 hover:text-rose-400 rounded hover:bg-slate-700/60"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100"
                         title="Delete Run"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -404,14 +404,14 @@ export const BenchmarksPage: React.FC = () => {
 
       {/* Selected Benchmark Detail & Visualizations */}
       {activeBenchmark && (
-        <div className="space-y-6 pt-4 border-t border-slate-800">
+        <div className="space-y-6 pt-4 border-t border-slate-200">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <span>{activeBenchmark.name}</span>
                 <span className="text-xs font-normal text-slate-400">({activeBenchmark.id})</span>
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Created: {new Date(activeBenchmark.created_at).toLocaleString()} • Telemetry Samples:{' '}
                 {activeBenchmark.resource_samples_count}
               </p>
@@ -421,45 +421,45 @@ export const BenchmarksPage: React.FC = () => {
           {/* Recharts Visualizations */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Throughput Chart */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
-              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <Cpu className="w-4 h-4 text-sky-400" />
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
+              <h3 className="text-xs font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-blue-600" />
                 Generation Throughput (Tokens/sec — higher is better)
               </h3>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={throughputChartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="model" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                    <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="model" stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
+                      contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}
                       formatter={(val: any) => [`${val} tokens/sec`, 'Mean Throughput']}
                     />
-                    <Bar dataKey="throughput" fill="#0284c7" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="throughput" fill="#2563eb" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {/* Latency Breakdown Chart */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
-              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-400" />
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
+              <h3 className="text-xs font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-500" />
                 Latency Comparison (TTFT vs Total Response ms — lower is better)
               </h3>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={latencyChartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="model" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                    <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="model" stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
+                      contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}
                     />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar dataKey="ttft" name="TTFT (ms)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="total" name="Total Duration (ms)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="ttft" name="TTFT (ms)" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="total" name="Total Duration (ms)" fill="#10b981" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -467,15 +467,15 @@ export const BenchmarksPage: React.FC = () => {
           </div>
 
           {/* Aggregated Model Statistics Table */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
-            <div className="px-5 py-3 border-b border-slate-800 font-semibold text-slate-200 text-sm">
+          <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs">
+            <div className="px-6 py-3.5 border-b border-slate-100 font-bold text-slate-900 text-xs">
               Evaluated Model Summary (Warm-up Discarded)
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-800/60 text-slate-400 uppercase font-medium">
+                <thead className="bg-slate-50/80 border-b border-slate-100 text-slate-400 uppercase font-bold text-[11px] tracking-wider">
                   <tr>
-                    <th className="py-3 px-4">Model</th>
+                    <th className="py-3 px-6">Model</th>
                     <th className="py-3 px-4">Trials</th>
                     <th className="py-3 px-4">Throughput (Mean / Median)</th>
                     <th className="py-3 px-4">TTFT (Mean ms)</th>
@@ -483,19 +483,19 @@ export const BenchmarksPage: React.FC = () => {
                     <th className="py-3 px-4">Retrieval (Mean ms)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                <tbody className="divide-y divide-slate-100 text-slate-700">
                   {Object.entries(activeBenchmark.aggregated_metrics).map(([model, m]) => (
-                    <tr key={model} className="hover:bg-slate-800/30">
-                      <td className="py-3 px-4 font-semibold text-white">{model}</td>
-                      <td className="py-3 px-4">
+                    <tr key={model} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3.5 px-6 font-semibold text-slate-900">{model}</td>
+                      <td className="py-3.5 px-4 font-medium text-slate-600">
                         {m.completed_trials} / {m.total_trials}
                       </td>
-                      <td className="py-3 px-4 text-sky-400 font-mono font-medium">
+                      <td className="py-3.5 px-4 text-blue-600 font-mono font-semibold">
                         {m.tokens_per_second.mean || 0} / {m.tokens_per_second.median || 0} t/s
                       </td>
-                      <td className="py-3 px-4 font-mono">{m.ttft_ms.mean || 0} ms</td>
-                      <td className="py-3 px-4 font-mono">{m.total_duration_ms.mean || 0} ms</td>
-                      <td className="py-3 px-4 font-mono">{m.retrieval_duration_ms.mean || 0} ms</td>
+                      <td className="py-3.5 px-4 font-mono text-slate-600">{m.ttft_ms.mean || 0} ms</td>
+                      <td className="py-3.5 px-4 font-mono text-slate-600">{m.total_duration_ms.mean || 0} ms</td>
+                      <td className="py-3.5 px-4 font-mono text-slate-600">{m.retrieval_duration_ms.mean || 0} ms</td>
                     </tr>
                   ))}
                 </tbody>
@@ -504,55 +504,55 @@ export const BenchmarksPage: React.FC = () => {
           </div>
 
           {/* Trials Breakdown Table */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
-            <div className="px-5 py-3 border-b border-slate-800 font-semibold text-slate-200 text-sm flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs">
+            <div className="px-6 py-3.5 border-b border-slate-100 font-bold text-slate-900 text-xs flex items-center justify-between">
               <span>Trial Evidence & Citations ({activeBenchmark.trials.length} trials)</span>
-              <span className="text-xs font-normal text-slate-500">Rep 0 = Warm-up</span>
+              <span className="text-[11px] font-medium text-slate-400">Rep 0 = Warm-up</span>
             </div>
             <div className="overflow-x-auto max-h-96">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-800/60 text-slate-400 uppercase font-medium sticky top-0">
+                <thead className="bg-slate-50/80 border-b border-slate-100 text-slate-400 uppercase font-bold text-[11px] tracking-wider sticky top-0">
                   <tr>
-                    <th className="py-2.5 px-3">Q ID</th>
-                    <th className="py-2.5 px-3">Model</th>
-                    <th className="py-2.5 px-3">Rep</th>
-                    <th className="py-2.5 px-3">Status</th>
-                    <th className="py-2.5 px-3">Throughput</th>
-                    <th className="py-2.5 px-3">TTFT</th>
-                    <th className="py-2.5 px-3">Answer Snippet</th>
-                    <th className="py-2.5 px-3 text-right">Review</th>
+                    <th className="py-3 px-6">Q ID</th>
+                    <th className="py-3 px-4">Model</th>
+                    <th className="py-3 px-4">Rep</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Throughput</th>
+                    <th className="py-3 px-4">TTFT</th>
+                    <th className="py-3 px-4">Answer Snippet</th>
+                    <th className="py-3 px-6 text-right">Review</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                <tbody className="divide-y divide-slate-100 text-slate-700">
                   {activeBenchmark.trials.map((t) => (
-                    <tr key={t.id} className="hover:bg-slate-800/30">
-                      <td className="py-2.5 px-3 font-semibold text-white">{t.question_id}</td>
-                      <td className="py-2.5 px-3">{t.model_name}</td>
-                      <td className="py-2.5 px-3">
+                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-6 font-semibold text-slate-900">{t.question_id}</td>
+                      <td className="py-3 px-4 font-medium text-slate-600">{t.model_name}</td>
+                      <td className="py-3 px-4">
                         {t.is_warmup ? (
-                          <span className="text-slate-500">0 (Warmup)</span>
+                          <span className="text-slate-400">0 (Warmup)</span>
                         ) : (
-                          <span className="text-slate-300">{t.repetition_index}</span>
+                          <span className="text-slate-700 font-medium">{t.repetition_index}</span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3">
+                      <td className="py-3 px-4">
                         {t.status === 'completed' ? (
-                          <span className="text-emerald-400 font-medium">OK</span>
+                          <span className="text-emerald-600 font-semibold">OK</span>
                         ) : (
-                          <span className="text-rose-400 font-medium">{t.status}</span>
+                          <span className="text-rose-600 font-semibold">{t.status}</span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-sky-400 font-medium">
+                      <td className="py-3 px-4 font-mono text-blue-600 font-semibold">
                         {t.tokens_per_second ? `${t.tokens_per_second} t/s` : '-'}
                       </td>
-                      <td className="py-2.5 px-3 font-mono">{t.ttft_ms ? `${t.ttft_ms} ms` : '-'}</td>
-                      <td className="py-2.5 px-3 max-w-xs truncate text-slate-400" title={t.answer_text || ''}>
+                      <td className="py-3 px-4 font-mono text-slate-600">{t.ttft_ms ? `${t.ttft_ms} ms` : '-'}</td>
+                      <td className="py-3 px-4 max-w-xs truncate text-slate-500" title={t.answer_text || ''}>
                         {t.answer_text || '-'}
                       </td>
-                      <td className="py-2.5 px-3 text-right">
+                      <td className="py-3 px-6 text-right">
                         <button
                           onClick={() => setReviewTrial(t)}
-                          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded text-xs transition-colors"
+                          className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-blue-600 font-semibold rounded-lg text-xs transition-colors"
                         >
                           Review
                         </button>
@@ -568,38 +568,38 @@ export const BenchmarksPage: React.FC = () => {
 
       {/* Review Modal */}
       {reviewTrial && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-lg shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg shadow-xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-amber-400" />
-                <h3 className="font-semibold text-white">Manual Quality Review</h3>
+                <Award className="w-4 h-4 text-amber-500" />
+                <h3 className="font-bold text-slate-900 text-sm">Manual Quality Review</h3>
               </div>
               <button
                 onClick={() => setReviewTrial(null)}
-                className="text-slate-400 hover:text-white font-bold"
+                className="text-slate-400 hover:text-slate-700 text-lg font-bold"
               >
                 &times;
               </button>
             </div>
 
-            <div className="text-xs text-slate-400 space-y-1">
-              <div><span className="text-slate-300 font-medium">Question ({reviewTrial.question_id}):</span> {reviewTrial.question_text}</div>
-              <div><span className="text-slate-300 font-medium">Model:</span> {reviewTrial.model_name}</div>
+            <div className="text-xs text-slate-500 space-y-1">
+              <div><span className="text-slate-800 font-semibold">Question ({reviewTrial.question_id}):</span> {reviewTrial.question_text}</div>
+              <div><span className="text-slate-800 font-semibold">Model:</span> {reviewTrial.model_name}</div>
             </div>
 
-            <div className="p-3 bg-slate-950/60 rounded border border-slate-800 text-xs text-slate-200 font-mono max-h-32 overflow-y-auto">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-800 font-mono max-h-32 overflow-y-auto">
               {reviewTrial.answer_text || 'No answer recorded'}
             </div>
 
             {/* Rubric Rating (0-2) */}
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
-                <label className="block text-slate-400 font-medium mb-1">Groundedness (0-2)</label>
+                <label className="block text-slate-700 font-bold mb-1">Groundedness (0-2)</label>
                 <select
                   value={groundedness}
                   onChange={(e) => setGroundedness(Number(e.target.value))}
-                  className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-800 font-medium"
                 >
                   <option value={2}>2 - Fully grounded, accurate citations</option>
                   <option value={1}>1 - Partially grounded / minor unbacked claim</option>
@@ -608,11 +608,11 @@ export const BenchmarksPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-400 font-medium mb-1">Usefulness (0-2)</label>
+                <label className="block text-slate-700 font-bold mb-1">Usefulness (0-2)</label>
                 <select
                   value={usefulness}
                   onChange={(e) => setUsefulness(Number(e.target.value))}
-                  className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-800 font-medium"
                 >
                   <option value={2}>2 - Completely answers prompt</option>
                   <option value={1}>1 - Partially answers prompt</option>
@@ -622,19 +622,19 @@ export const BenchmarksPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-slate-400 text-xs font-medium mb-1">Review Notes</label>
+              <label className="block text-slate-700 text-xs font-bold mb-1">Review Notes</label>
               <textarea
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
                 placeholder="Optional manual reviewer notes..."
-                className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white text-xs h-20 focus:outline-none"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-800 text-xs h-20 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 onClick={() => setReviewTrial(null)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs"
+                className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold"
               >
                 Close
               </button>
@@ -643,7 +643,7 @@ export const BenchmarksPage: React.FC = () => {
                   alert(`Recorded quality review for trial ${reviewTrial.id}: Groundedness=${groundedness}, Usefulness=${usefulness}`);
                   setReviewTrial(null);
                 }}
-                className="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded text-xs font-semibold"
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs"
               >
                 Save Review
               </button>

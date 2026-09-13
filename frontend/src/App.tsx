@@ -4,7 +4,7 @@ import { AssistantPage } from './pages/Assistant';
 import { BenchmarksPage } from './pages/Benchmarks';
 import { api } from './api/client';
 import type { HealthResponse } from './api/client';
-import { Layers, MessageSquare, BarChart3, ShieldCheck, Activity } from 'lucide-react';
+import { FileText, MessageSquare, BarChart2, Cpu, Settings } from 'lucide-react';
 
 type Tab = 'documents' | 'assistant' | 'benchmarks';
 
@@ -28,91 +28,104 @@ export const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans selection:bg-blue-600 selection:text-white antialiased">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-6 py-3.5">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-6 lg:px-8 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Logo & Subtitle */}
+          {/* Brand Logo & Subtitle */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-sky-500/20">
-              E
+            {/* 3D Isometric Cube Icon */}
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-xs shrink-0">
+              <svg className="w-9 h-9" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 3L32 10.5V25.5L18 33L4 25.5V10.5L18 3Z" fill="#1E40AF" />
+                <path d="M18 3L32 10.5L18 18L4 10.5L18 3Z" fill="#3B82F6" />
+                <path d="M18 18L32 10.5V25.5L18 33V18Z" fill="#1D4ED8" />
+                <path d="M4 10.5L18 18V33L4 25.5V10.5Z" fill="#2563EB" />
+                <path d="M18 6L28 11.5L18 17L8 11.5L18 6Z" fill="#60A5FA" opacity="0.9" />
+              </svg>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-white text-base tracking-tight">EdgeRAG</span>
-                <span className="text-[11px] font-semibold uppercase px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                  Local Monolith
-                </span>
+                <span className="font-extrabold text-slate-900 text-lg tracking-tight">EdgeRAG</span>
               </div>
-              <p className="text-[11px] text-slate-400">Technical Assistant & Hardware Telemetry</p>
+              <p className="text-[11px] text-slate-500 font-medium">Technical Assistant & Hardware Telemetry</p>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <nav className="flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
+          {/* Navigation Pill Group */}
+          <nav className="flex items-center p-1 bg-slate-100/90 rounded-2xl border border-slate-200/70 gap-1 shadow-inner">
             <button
               onClick={() => setCurrentTab('documents')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                 currentTab === 'documents'
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
               }`}
             >
-              <Layers className="w-3.5 h-3.5" />
-              Documents
+              <FileText className="w-3.5 h-3.5" />
+              <span>Documents</span>
             </button>
 
             <button
               onClick={() => setCurrentTab('assistant')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                 currentTab === 'assistant'
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
               }`}
             >
               <MessageSquare className="w-3.5 h-3.5" />
-              Assistant
+              <span>Assistant</span>
             </button>
 
             <button
               onClick={() => setCurrentTab('benchmarks')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                 currentTab === 'benchmarks'
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
               }`}
             >
-              <BarChart3 className="w-3.5 h-3.5" />
-              Benchmarks
+              <BarChart2 className="w-3.5 h-3.5" />
+              <span>Benchmarks</span>
             </button>
           </nav>
 
-          {/* System Health Indicator */}
-          <div className="flex items-center gap-2.5">
-            {health?.status === 'healthy' && (
-              <div
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium cursor-help"
-                title="SQLite WAL and local Ollama daemon are fully ready"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Ready (RTX 3070)</span>
+          {/* Telemetry Pill & Settings */}
+          <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-white shadow-xs text-xs"
+              title={
+                health?.status === 'healthy'
+                  ? 'All local systems ready (SQLite WAL + Ollama daemon)'
+                  : health?.status === 'degraded'
+                  ? 'Ollama connection degraded'
+                  : 'Connecting to local backend...'
+              }
+            >
+              <div className="flex items-center gap-1.5 text-slate-700">
+                <Cpu className="w-3.5 h-3.5 text-slate-600" />
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    health?.status === 'healthy'
+                      ? 'bg-emerald-500 animate-pulse'
+                      : health?.status === 'degraded'
+                      ? 'bg-amber-500'
+                      : 'bg-slate-400'
+                  }`}
+                ></span>
+                <span className="font-semibold text-slate-800">RTX 3070</span>
               </div>
-            )}
-            {health?.status === 'degraded' && (
-              <div
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium cursor-help"
-                title="Ollama daemon is unreachable or starting up"
-              >
-                <Activity className="w-3.5 h-3.5" />
-                <span>Ollama Degraded</span>
-              </div>
-            )}
-            {!health && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-xs font-medium">
-                <span className="w-2 h-2 rounded-full bg-slate-500"></span>
-                <span>Connecting...</span>
-              </div>
-            )}
+              <span className="text-slate-300">•</span>
+              <span className="text-slate-600 font-medium">1.2 / 8.0 GB VRAM</span>
+            </div>
+
+            <button
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl border border-slate-200 bg-white transition-colors"
+              title="Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -125,8 +138,13 @@ export const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/60 py-4 px-6 text-center text-xs text-slate-500">
-        EdgeRAG • Local Monolith • SentenceTransformers + FAISS + SQLite + Ollama • Zero Cloud Dependency
+      <footer className="border-t border-slate-200 py-4 px-6 md:px-8 text-xs text-slate-400">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <span>EdgeRAG v1.0 • Local Engine (Offline)</span>
+          <span className="text-[11px] text-slate-400 hidden sm:inline">
+            SentenceTransformers (MiniLM-L6) + FAISS + SQLite WAL + Ollama
+          </span>
+        </div>
       </footer>
     </div>
   );
