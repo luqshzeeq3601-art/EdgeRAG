@@ -88,3 +88,21 @@ def test_health_reports_degraded_when_ollama_is_unavailable(tmp_path: Path) -> N
     assert body["ollama"]["status"] == "unavailable"
     assert body["ollama"]["ready"] is False
     assert "unavailable" in body["ollama"]["error"]
+
+
+def test_monitoring_lifecycle_and_clean_shutdown(tmp_path: Path) -> None:
+    from app.services.monitoring import HardwareMonitor, NVMLReader
+
+    monitor = HardwareMonitor(nvml_reader=NVMLReader())
+    monitor.start("bench_test_1", lambda: "trial_1")
+    samples = monitor.stop_background_sampling()
+    assert isinstance(samples, list)
+    monitor.close()
+
+
+def test_app_lifespan_clean_shutdown(tmp_path: Path) -> None:
+    app = make_test_app(tmp_path / "lifespan.sqlite3", HealthyOllama())
+    with TestClient(app) as client:
+        resp = client.get("/api/v1/health")
+        assert resp.status_code == 200
+

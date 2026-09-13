@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import time
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator
 
@@ -149,8 +151,8 @@ class OllamaProvider:
             )
         return models
 
-    async def unload_model(self, model: str) -> None:
-        """Unload a model from Ollama memory/VRAM by setting keep_alive to 0."""
+    async def unload_model(self, model: str, *, poll_timeout: float = 5.0) -> bool:
+        """Unload a model from Ollama memory/VRAM by setting keep_alive to 0, then poll /api/ps to verify eviction."""
         try:
             async with httpx.AsyncClient(
                 base_url=self.base_url,
@@ -163,6 +165,21 @@ class OllamaProvider:
                 )
         except Exception:
             pass
+
+        # Poll /api/ps up to poll_timeout seconds to verify eviction
+        model_normalized = model.strip().lower()
+        poll_start = time.perf_counter()
+        while time.perf_counter() - poll_start < poll_timeout:
+            running = await self.list_running_models()
+            running_lower = [r.lower() for r in running]
+            still_resident = any(
+                model_normalized in r or r in model_normalized
+                for r in running_lower
+            )
+            if not still_resident:
+                return True
+            await asyncio.sleep(0.2)
+        return False
 
     async def list_running_models(self) -> list[str]:
         """List currently running/resident models from Ollama /api/ps."""

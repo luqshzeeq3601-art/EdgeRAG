@@ -228,10 +228,9 @@ def cancel_benchmark(
     if record.status not in ("queued", "running"):
         return {"status": record.status, "message": f"Benchmark is already {record.status}"}
 
-    cancelled = engine.cancel_benchmark(benchmark_id)
-    if not cancelled:
-        # If queued and worker hasn't started yet, directly mark cancelled
-        repo.update_benchmark_status(benchmark_id, "cancelled")
+    engine.cancel_benchmark(benchmark_id)
+    # Always update database status so queued or between-trial checks immediately detect cancellation
+    repo.update_benchmark_status(benchmark_id, "cancelled")
 
     return {"status": "cancelled", "message": "Cancellation signaled"}
 

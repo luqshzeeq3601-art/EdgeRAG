@@ -10,10 +10,12 @@ from fastapi.testclient import TestClient
 
 from app.benchmarks.repository import BenchmarkRepository
 from app.core.config import Settings
+from app.documents.pipeline import DocumentPipeline
+from app.documents.repository import DocumentRepository
 from app.main import create_app
 from app.persistence.database import Database
 from app.providers.ollama import OllamaGenerateChunk, OllamaModelInfo, OllamaProvider, OllamaReadiness
-from app.services.benchmark import BenchmarkEngine
+from app.services.benchmark import BenchmarkEngine, BenchmarkExecutionPlan
 
 
 class FakeOllamaProvider(OllamaProvider):
@@ -126,3 +128,53 @@ def test_benchmark_crud_and_cancel(tmp_path: Path) -> None:
         # 6. Verify 404 after deletion
         get_deleted = client.get(f"/api/v1/benchmarks/{bench_id}")
         assert get_deleted.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_benchmark_cancellation_while_queued(tmp_path: Path) -> None:
+    database = Database(tmp_path / "test.db")
+    database.initialize()
+    repo = BenchmarkRepository(database)
+
+    plan = BenchmarkExecutionPlan(
+        benchmark_id="bench_queued_1",
+        name="Queued Test",
+        suite_id="quick_dev",
+        mode="fixed_context",
+        temperature_type="warm",
+        models=["smollm2:135m"],
+        repetitions=1,
+        top_k=3,
+    )
+    repo.create_benchmark(
+        benchmark_id=plan.benchmark_id,
+        name="Queued Test",
+        suite_id=plan.suite_id,
+        mode=plan.mode,
+        temperature_type=plan.temperature_type,
+        models=plan.models,
+        config={"repetitions": 1, "top_k": 3},
+    )
+
+    # Cancel while in queue before engine acquires lock
+    repo.update_benchmark_status(plan.benchmark_id, "cancelled")
+
+    settings = Settings(
+        database_path=tmp_path / "test.db",
+        vector_index_path=tmp_path / "test.faiss",
+        document_storage_path=tmp_path / "docs",
+        _env_file=None,
+    )
+    pipeline = DocumentPipeline.from_settings(settings, DocumentRepository(database))
+    engine = BenchmarkEngine(
+        repository=repo,
+        pipeline=pipeline,
+        ollama_provider=FakeOllamaProvider(),
+    )
+
+    result = await engine.run_benchmark(plan)
+    assert result.status == "cancelled"
+    trials = repo.list_trials(plan.benchmark_id)
+    assert len(trials) == 0
+
+

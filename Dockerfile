@@ -13,26 +13,32 @@ RUN npm run build
 # Stage 2: Production Python Backend Runtime
 FROM python:3.11-slim AS runtime
 
-# Install system utilities
+# Install system utilities and uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy and install backend dependencies
-COPY backend/pyproject.toml /app/backend/
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -e /app/backend
+# Copy dependency specifications and lockfile
+COPY backend/pyproject.toml backend/uv.lock /app/backend/
 
-# Copy backend application source
+# Install frozen dependencies via uv
+WORKDIR /app/backend
+RUN uv sync --frozen --no-dev --no-install-project
+
+# Copy backend application source and install project
 COPY backend /app/backend
+RUN uv sync --frozen --no-dev
 
 # Copy built frontend static bundle from stage 1
 COPY --from=frontend-builder /build/dist /app/frontend/dist
 
 # Runtime paths and offline flags
 ENV PYTHONUNBUFFERED=1 \
+    PATH="/app/backend/.venv/bin:$PATH" \
     EDGERAG_OLLAMA_BASE_URL="http://host.docker.internal:11434" \
     EDGERAG_DATABASE_PATH="/app/data/db/edgerag.sqlite3" \
     EDGERAG_DOCUMENT_STORAGE_PATH="/app/data/documents" \

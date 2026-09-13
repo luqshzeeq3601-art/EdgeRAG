@@ -74,57 +74,64 @@ def main() -> None:
     print("      Offline environment flags active.")
 
     print("[2/4] Initializing isolated offline pipeline & local embeddings...")
-    temp_dir = Path("data/offline_test")
-    temp_dir.mkdir(parents=True, exist_ok=True)
-    db_path = temp_dir / "test_offline.sqlite3"
-    if db_path.exists():
-        db_path.unlink()
+    import tempfile
 
-    db = Database(db_path)
-    db.initialize()
-    repo = DocumentRepository(db)
+    with tempfile.TemporaryDirectory(prefix="edgerag_offline_") as tmp_dir_str:
+        temp_dir = Path(tmp_dir_str)
+        db_path = temp_dir / "sqlite" / "test_offline.sqlite3"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        docs_dir = temp_dir / "documents"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        faiss_dir = temp_dir / "indexes"
+        faiss_dir.mkdir(parents=True, exist_ok=True)
+        index_path = faiss_dir / "test.faiss"
 
-    settings = Settings(
-        database_path=db_path,
-        document_storage_path=temp_dir / "docs",
-        vector_index_path=temp_dir / "test.faiss",
-        embedding_model_name="sentence-transformers/all-MiniLM-L6-v2",
-        embedding_device="cpu",
-    )
+        db = Database(db_path)
+        db.initialize()
+        repo = DocumentRepository(db)
 
-    pipeline = DocumentPipeline.from_settings(settings, repo)
+        settings = Settings(
+            database_path=db_path,
+            document_storage_path=docs_dir,
+            vector_index_path=index_path,
+            embedding_model_name="sentence-transformers/all-MiniLM-L6-v2",
+            embedding_device="cpu",
+            _env_file=None,
+        )
 
-    print("[3/4] Ingesting PDF completely offline...")
-    pdf_bytes = make_offline_test_pdf()
-    record = pipeline.ingest(pdf_bytes, filename="offline_core_spec.pdf")
-    print(f"      Document ingested: ID={record.id}, Chunks={record.chunk_count}, Status={record.status}")
-    assert record.status == "ready"
+        pipeline = DocumentPipeline.from_settings(settings, repo)
 
-    print("[4/4] Retrieving passages & streaming response via local Ollama...")
-    matches = pipeline.retrieve("What is the maximum vibration limit?", top_k=1)
-    assert len(matches) == 1
-    matched_chunk = matches[0][1]
-    print(f"      Retrieved passage: {matched_chunk.text}")
-    assert "1.8 mm/s" in matched_chunk.text
+        print("[3/4] Ingesting PDF completely offline...")
+        pdf_bytes = make_offline_test_pdf()
+        record = pipeline.ingest(pdf_bytes, filename="offline_core_spec.pdf")
+        print(f"      Document ingested: ID={record.id}, Chunks={record.chunk_count}, Status={record.status}")
+        assert record.status == "ready"
 
-    # Test local RAG service
-    ollama_provider = OllamaProvider(base_url="http://127.0.0.1:11434")
-    rag = RAGService(pipeline=pipeline, ollama_provider=ollama_provider)
+        print("[4/4] Retrieving passages & streaming response via local Ollama...")
+        matches = pipeline.retrieve("What is the maximum vibration limit?", top_k=1)
+        assert len(matches) == 1
+        matched_chunk = matches[0][1]
+        print(f"      Retrieved passage: {matched_chunk.text}")
+        assert "1.8 mm/s" in matched_chunk.text
 
-    import asyncio
+        # Test local RAG service
+        ollama_provider = OllamaProvider(base_url="http://127.0.0.1:11434")
+        rag = RAGService(pipeline=pipeline, ollama_provider=ollama_provider)
 
-    async def run_rag():
-        tokens = []
-        async for event_type, payload in rag.ask_stream("What is the vibration limit?", model="smollm2:135m"):
-            if event_type == "delta":
-                tokens.append(payload.get("text", ""))
-        return "".join(tokens)
+        import asyncio
 
-    answer = asyncio.run(run_rag())
-    print(f"      Model Answer: {answer}")
-    assert len(answer) > 0
+        async def run_rag():
+            tokens = []
+            async for event_type, payload in rag.ask_stream("What is the vibration limit?", model="smollm2:135m"):
+                if event_type == "delta":
+                    tokens.append(payload.get("text", ""))
+            return "".join(tokens)
 
-    print("\nSUCCESS: All operations (embedding, indexing, retrieval, generation) completed with ZERO external network!")
+        answer = asyncio.run(run_rag())
+        print(f"      Model Answer: {answer}")
+        assert len(answer) > 0
+
+        print("\nSUCCESS: All operations (embedding, indexing, retrieval, generation) completed with ZERO external network!")
 
 
 if __name__ == "__main__":
