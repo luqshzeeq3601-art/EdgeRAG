@@ -5,6 +5,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
+from urllib.parse import unquote
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -79,6 +80,7 @@ def create_app(
         application.state.benchmark_engine = resolved_benchmark_engine
         try:
             resolved_database.initialize()
+            resolved_pipeline.initialize_and_validate_index()
         except Exception as exc:
             # The health route reports database failures as structured readiness data.
             application.state.database_initialization_error = str(exc)
@@ -118,13 +120,14 @@ def create_app(
                 break
 
     if dist_dir is not None:
-        assets_dir = dist_dir / "assets"
+        resolved_dist = dist_dir.resolve()
+        assets_dir = resolved_dist / "assets"
         if assets_dir.is_dir():
             application.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 
         @application.get("/", include_in_schema=False)
         async def serve_root() -> FileResponse:
-            index_path = dist_dir / "index.html"
+            index_path = resolved_dist / "index.html"
             if index_path.is_file():
                 return FileResponse(index_path)
             raise HTTPException(status_code=404, detail="Frontend index not found")
@@ -133,10 +136,25 @@ def create_app(
         async def serve_spa(full_path: str) -> FileResponse:
             if full_path.startswith("api/") or full_path == "api":
                 raise HTTPException(status_code=404, detail="API endpoint not found")
-            file_candidate = dist_dir / full_path
-            if file_candidate.is_file():
-                return FileResponse(file_candidate)
-            index_path = dist_dir / "index.html"
+
+            # Prevent directory traversal attacks
+            unquoted_path = unquote(full_path).lstrip("/\\")
+            try:
+                candidate = (resolved_dist / unquoted_path).resolve()
+            except (ValueError, OSError):
+                raise HTTPException(status_code=404, detail="Page not found")
+
+            if not candidate.is_relative_to(resolved_dist):
+                raise HTTPException(status_code=404, detail="Page not found")
+
+            if candidate.is_file():
+                return FileResponse(candidate)
+
+            # Do not fall back to index.html for missing files with extensions
+            if "." in candidate.name:
+                raise HTTPException(status_code=404, detail="Page not found")
+
+            index_path = resolved_dist / "index.html"
             if index_path.is_file():
                 return FileResponse(index_path)
             raise HTTPException(status_code=404, detail="Page not found")

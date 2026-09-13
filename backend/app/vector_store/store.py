@@ -31,9 +31,11 @@ class VectorStore:
 
     @classmethod
     def load(cls, path: str | Path) -> "VectorStore":
-        """Load an existing ID-mapped index and validate its shape."""
+        """Load an existing ID-mapped index safely via memory buffer."""
 
-        index = faiss.read_index(str(path))
+        data = Path(path).read_bytes()
+        array = np.frombuffer(data, dtype=np.uint8)
+        index = faiss.deserialize_index(array)
         if not isinstance(index, faiss.IndexIDMap2):
             raise ValueError("FAISS index must be IndexIDMap2")
         store = cls(index.d)
@@ -92,11 +94,14 @@ class VectorStore:
 
         target = Path(path)
         target.parent.mkdir(parents=True, exist_ok=True)
+        serialized = faiss.serialize_index(self.index)
+
         fd, temporary = tempfile.mkstemp(prefix=f".{target.name}.", suffix=".tmp", dir=target.parent)
-        os.close(fd)
-        temporary_path = Path(temporary)
         try:
-            faiss.write_index(self.index, str(temporary_path))
-            os.replace(temporary_path, target)
-        finally:
-            temporary_path.unlink(missing_ok=True)
+            with os.fdopen(fd, "wb") as f:
+                f.write(serialized)
+            os.replace(temporary, target)
+        except Exception:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
+            raise
