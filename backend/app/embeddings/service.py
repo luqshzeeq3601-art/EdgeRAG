@@ -36,6 +36,10 @@ class EmbeddingService:
         return self._encoder
 
     @property
+    def tokenizer(self) -> Any:
+        return getattr(self.encoder, "tokenizer", None)
+
+    @property
     def dimension(self) -> int:
         dimension = self.encoder.get_sentence_embedding_dimension()
         if dimension is None or dimension <= 0:

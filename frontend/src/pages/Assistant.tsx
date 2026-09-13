@@ -46,6 +46,12 @@ export const AssistantPage: React.FC = () => {
       }
     };
     loadModels();
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   const handleAsk = async (e?: React.FormEvent) => {

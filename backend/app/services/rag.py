@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import time
@@ -26,7 +27,9 @@ SYSTEM_PROMPT = (
     "6. If different source passages report conflicting statements, explain the conflict and cite both sources."
 )
 
-CITATION_PATTERN = re.compile(r"\[(S\d+)\]")
+CITATION_PATTERN = re.compile(r"\[([sS]-?\d+)\]")
+STRICT_CITATION_PATTERN = re.compile(r"^S\d+$")
+DEFAULT_SIMILARITY_THRESHOLD = 0.25
 
 
 @dataclass(frozen=True)
@@ -75,7 +78,7 @@ def build_user_prompt(query: str, formatted_context: str) -> str:
 
 
 def extract_citations(text: str) -> list[str]:
-    """Extract all [S#] citations from text preserving order of appearance, deduplicated."""
+    """Extract all citations (including malformed [s#] or [S-#]) preserving appearance order, deduplicated."""
     matches = CITATION_PATTERN.findall(text)
     seen: set[str] = set()
     result: list[str] = []
@@ -86,24 +89,48 @@ def extract_citations(text: str) -> list[str]:
     return result
 
 
-def validate_citations(text: str, valid_source_ids: Sequence[str]) -> CitationValidationResult:
-    """Validate extracted citations against retrieved passage IDs and flag invalid ones with warnings."""
+def validate_citations(
+    text: str,
+    valid_source_ids: Sequence[str],
+    *,
+    abstained: bool = False,
+) -> CitationValidationResult:
+    """Validate extracted citations against retrieved passage IDs and flag invalid/malformed ones with warnings."""
     valid_set = set(valid_source_ids)
     cited = extract_citations(text)
 
-    invalid = [c for c in cited if c not in valid_set]
-    uncited = [s for s in valid_source_ids if s not in set(cited)]
-
+    invalid: list[str] = []
     warnings: list[str] = []
-    if invalid:
-        valid_summary = ", ".join(sorted(valid_set)) if valid_set else "none"
-        for inv in invalid:
+    valid_summary = ", ".join(sorted(valid_set)) if valid_set else "none"
+
+    for tag in cited:
+        if not STRICT_CITATION_PATTERN.match(tag):
+            invalid.append(tag)
+            warnings.append(f"Malformed citation [{tag}]: expected format [S#].")
+        elif tag not in valid_set:
+            invalid.append(tag)
             warnings.append(
-                f"Citation [{inv}] is invalid: not in retrieved sources [{valid_summary}]."
+                f"Citation [{tag}] is invalid: not in retrieved sources [{valid_summary}]."
             )
 
+    uncited = [s for s in valid_source_ids if s not in set(cited)]
+
+    is_abstaining = (
+        abstained
+        or INSUFFICIENT_INFORMATION_MESSAGE.lower() in text.lower()
+        or NO_CONTEXT_ABSTENTION_MESSAGE.lower() in text.lower()
+        or "insufficient information" in text.lower()
+        or "no relevant context" in text.lower()
+    )
+
+    valid_cited = [c for c in cited if c in valid_set and STRICT_CITATION_PATTERN.match(c)]
+    if not is_abstaining and len(valid_cited) == 0:
+        warnings.append("Non-abstaining answer must contain at least one valid citation.")
+
+    is_valid = len(invalid) == 0 and (is_abstaining or len(valid_cited) > 0)
+
     return CitationValidationResult(
-        is_valid=len(invalid) == 0,
+        is_valid=is_valid,
         cited_sources=cited,
         invalid_citations=invalid,
         uncited_sources=uncited,
@@ -111,17 +138,33 @@ def validate_citations(text: str, valid_source_ids: Sequence[str]) -> CitationVa
     )
 
 
-def should_abstain(passages: Sequence[Any]) -> bool:
-    """Return True if context is empty and deterministic abstention is required."""
-    return len(passages) == 0
+def should_abstain(
+    passages: Sequence[Any],
+    *,
+    min_similarity: float = DEFAULT_SIMILARITY_THRESHOLD,
+) -> bool:
+    """Return True if context is empty or maximum similarity score is below threshold."""
+    if len(passages) == 0:
+        return True
+    scores = [p["score"] for p in passages if isinstance(p, dict) and "score" in p]
+    if scores and max(scores) < min_similarity:
+        return True
+    return False
 
 
 class RAGService:
     """Orchestrates retrieval, grounded prompting, streaming generation, and citation checks."""
 
-    def __init__(self, pipeline: DocumentPipeline, ollama_provider: OllamaProvider) -> None:
+    def __init__(
+        self,
+        pipeline: DocumentPipeline,
+        ollama_provider: OllamaProvider,
+        *,
+        similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
+    ) -> None:
         self.pipeline = pipeline
         self.ollama_provider = ollama_provider
+        self.similarity_threshold = similarity_threshold
 
     async def ask_stream(
         self,
@@ -133,9 +176,9 @@ class RAGService:
         """Execute RAG pipeline and yield SSE events as (event_type, payload_dict)."""
         start_time = time.perf_counter()
 
-        # 1. Retrieval
+        # 1. Retrieval (offloaded to threadpool for CPU isolation)
         retrieval_start = time.perf_counter()
-        matches = self.pipeline.retrieve(query, top_k=top_k)
+        matches = await asyncio.to_thread(self.pipeline.retrieve, query, top_k)
         retrieval_duration_ms = (time.perf_counter() - retrieval_start) * 1000.0
 
         # Construct source items
@@ -158,22 +201,22 @@ class RAGService:
         # 2. Yield sources event
         yield ("sources", {"sources": sources})
 
-        # 3. Deterministic Abstention Check
-        if should_abstain(sources):
-            # No context found: abstain deterministically without calling LLM
+        # 3. Deterministic Abstention Check (empty context or below calibrated similarity threshold)
+        if should_abstain(sources, min_similarity=self.similarity_threshold):
+            # No relevant context found: abstain deterministically without calling LLM
             yield ("delta", {"text": NO_CONTEXT_ABSTENTION_MESSAGE})
 
             total_duration_ms = (time.perf_counter() - start_time) * 1000.0
             done_payload = {
                 "model": model,
                 "answer": NO_CONTEXT_ABSTENTION_MESSAGE,
-                "sources_count": 0,
+                "sources_count": len(sources),
                 "abstained": True,
                 "citations": CitationValidationResult(
                     is_valid=True,
                     cited_sources=[],
                     invalid_citations=[],
-                    uncited_sources=[],
+                    uncited_sources=[s["source_id"] for s in sources],
                     warnings=[],
                 ).to_dict(),
                 "timings": {
@@ -186,7 +229,7 @@ class RAGService:
             yield ("done", done_payload)
             return
 
-        # 4. Context exists: construct prompt & stream generation
+        # 4. Context exists: construct prompt & stream generation with timeout
         formatted_context = format_context(sources)
         prompt = build_user_prompt(query, formatted_context)
         valid_source_ids = [s["source_id"] for s in sources]
@@ -196,23 +239,44 @@ class RAGService:
         final_chunk: OllamaGenerateChunk | None = None
 
         try:
-            stream = self.ollama_provider.stream_generate(
-                model=model,
-                prompt=prompt,
-                system=SYSTEM_PROMPT,
+            async with asyncio.timeout(60.0):
+                stream = self.ollama_provider.stream_generate(
+                    model=model,
+                    prompt=prompt,
+                    system=SYSTEM_PROMPT,
+                )
+                async for chunk in stream:
+                    if chunk.response:
+                        if first_token_ms is None:
+                            first_token_ms = (time.perf_counter() - start_time) * 1000.0
+                        accumulated_text += chunk.response
+                        yield ("delta", {"text": chunk.response})
+
+                    if chunk.done:
+                        final_chunk = chunk
+
+        except TimeoutError:
+            yield (
+                "error",
+                {
+                    "detail": "Generation timed out after 60.0 seconds.",
+                    "code": "GENERATION_TIMEOUT",
+                },
             )
-            async for chunk in stream:
-                if chunk.response:
-                    if first_token_ms is None:
-                        first_token_ms = (time.perf_counter() - start_time) * 1000.0
-                    accumulated_text += chunk.response
-                    yield ("delta", {"text": chunk.response})
-
-                if chunk.done:
-                    final_chunk = chunk
-
+            return
         except Exception as exc:
             yield ("error", {"detail": str(exc)})
+            return
+
+        # Verify stream completed with done signal
+        if final_chunk is None or not final_chunk.done:
+            yield (
+                "error",
+                {
+                    "detail": "Ollama stream terminated prematurely without done signal.",
+                    "code": "STREAM_PREMATURE_TERMINATION",
+                },
+            )
             return
 
         # 5. Citation Validation & Final Metadata
