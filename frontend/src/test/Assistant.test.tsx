@@ -25,10 +25,10 @@ describe('AssistantPage', () => {
 
     render(<AssistantPage />);
 
-    expect(screen.getByPlaceholderText(/Ask a technical question/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Ask about your manuals/i)).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText(/smollm2:135m/i)).toBeInTheDocument();
+      expect(screen.getByText(/Accurate — careful/i)).toBeInTheDocument();
     });
   });
 });

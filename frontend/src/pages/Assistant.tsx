@@ -5,20 +5,19 @@ import ReactMarkdown from 'react-markdown';
 import {
   Send,
   Square,
-  Bot,
   FileText,
   ChevronDown,
   ChevronUp,
   AlertTriangle,
   CheckCircle,
-  Zap,
-  Clock,
   Database,
-  Cpu,
+  Box,
+  MessageCircle,
 } from 'lucide-react';
 
 export const AssistantPage: React.FC = () => {
   const [models, setModels] = useState<ModelSummary[]>([]);
+  const [answerStyle, setAnswerStyle] = useState<'fast' | 'accurate'>('accurate');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [topK, setTopK] = useState<number>(5);
   const [query, setQuery] = useState<string>('');
@@ -33,13 +32,23 @@ export const AssistantPage: React.FC = () => {
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Pick a model behind the scenes from the plain-language answer style:
+  // Fast = smallest model on this computer, Accurate = most careful one.
+  const pickModelForStyle = (available: ModelSummary[], style: 'fast' | 'accurate'): string => {
+    if (available.length === 0) return '';
+    const bySize = [...available].sort((a, b) => a.size - b.size);
+    if (style === 'fast') return bySize[0].name;
+    const careful = available.find((m) => m.name.toLowerCase().includes('qwen'));
+    return (careful ?? bySize[bySize.length - 1]).name;
+  };
+
   useEffect(() => {
     const loadModels = async () => {
       try {
         const available = await api.listModels();
         setModels(available);
         if (available.length > 0 && !selectedModel) {
-          setSelectedModel(available[0].name);
+          setSelectedModel(pickModelForStyle(available, answerStyle));
         }
       } catch (err: any) {
         console.error('Failed to list models:', err);
@@ -52,7 +61,16 @@ export const AssistantPage: React.FC = () => {
         abortControllerRef.current.abort();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-resolve the backing model whenever the user flips Fast/Accurate.
+  useEffect(() => {
+    if (models.length > 0 && !isStreaming) {
+      setSelectedModel(pickModelForStyle(models, answerStyle));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answerStyle, models.length]);
 
   const handleAsk = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -79,10 +97,6 @@ export const AssistantPage: React.FC = () => {
         {
           onSources: (incomingSources) => {
             setSources(incomingSources);
-            // Default first source expanded
-            if (incomingSources.length > 0) {
-              setExpandedSources({ [incomingSources[0].source_id]: true });
-            }
           },
           onDelta: (delta) => {
             setAnswerText(prev => prev + delta);
@@ -122,129 +136,161 @@ export const AssistantPage: React.FC = () => {
     }));
   };
 
-  const formatModelSize = (bytes: number) => {
-    return `${(bytes / (1024 * 1024)).toFixed(0)} MB`;
-  };
-
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Top Configuration Controls */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4.5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Bot className="w-4 h-4 text-blue-600" />
-            <span className="text-xs font-bold text-slate-800">Model:</span>
+    <div className="assistant-page w-full space-y-6">
+      <header className="max-w-3xl pb-1">
+        <h1 className="text-[32px] sm:text-[36px] font-bold leading-[1.15] tracking-[-0.03em] text-slate-900">
+          Ask your manuals
+        </h1>
+        <p className="mt-2 text-base leading-6 text-slate-600">
+          Ask a question in plain words. You'll get an answer quoted from your manuals — or an honest "not in there" instead of a guess.
+        </p>
+      </header>
+
+      <section
+        aria-label="Answer configuration"
+        className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-[0_1px_3px_rgba(15,23,42,0.06)] sm:px-5"
+      >
+        <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-center">
+          <div className="flex shrink-0 items-center gap-2.5">
+            <Box className="h-6 w-6 text-emerald-700" strokeWidth={1.8} aria-hidden="true" />
+            <label htmlFor="assistant-style" className="text-sm font-semibold text-slate-900">
+              Answer style
+            </label>
           </div>
           <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
+            id="assistant-style"
+            value={answerStyle}
+            onChange={(e) => setAnswerStyle(e.target.value as 'fast' | 'accurate')}
             disabled={isStreaming || models.length === 0}
-            className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            className="h-11 min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3.5 text-sm font-semibold text-slate-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50"
           >
             {models.length === 0 ? (
-              <option value="">No Ollama models detected</option>
+              <option value="accurate">No AI models found on this computer</option>
             ) : (
-              models.map((m) => (
-                <option key={m.name} value={m.name}>
-                  {m.name} ({formatModelSize(m.size)})
-                </option>
-              ))
+              <>
+                <option value="accurate">Accurate — careful, sticks to the manual</option>
+                <option value="fast">Fast — quicker, good for simple lookups</option>
+              </>
             )}
           </select>
+        </div>
+        {selectedModel && (
+          <p className="mt-2 text-xs text-slate-500">
+            Using {selectedModel} on this computer — your question never leaves it.
+          </p>
+        )}
 
-          <div className="flex items-center gap-2 ml-4">
-            <Database className="w-3.5 h-3.5 text-slate-500" />
-            <span className="text-xs font-medium text-slate-600">Top-K Passages:</span>
+        <details className="mt-3 rounded-lg">
+          <summary className="cursor-pointer text-sm font-semibold text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 rounded">
+            Advanced settings
+          </summary>
+          <div className="mt-3 flex min-w-0 items-center gap-3 border-t border-slate-100 pt-3">
+            <Database className="h-5 w-5 shrink-0 text-slate-500" strokeWidth={1.8} aria-hidden="true" />
+            <label htmlFor="assistant-top-k" className="whitespace-nowrap text-sm font-medium text-slate-700">
+              Manual excerpts to check
+            </label>
             <select
+              id="assistant-top-k"
               value={topK}
               onChange={(e) => setTopK(Number(e.target.value))}
               disabled={isStreaming}
-              className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-2.5 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="ml-auto h-11 min-h-11 w-24 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50"
             >
               {[1, 2, 3, 4, 5, 6, 8, 10].map(k => (
                 <option key={k} value={k}>{k}</option>
               ))}
             </select>
           </div>
-        </div>
+          <p className="mt-1.5 text-xs text-slate-500">How many manual passages to read before answering. 5 is fine for most questions.</p>
+        </details>
+      </section>
 
-        <div className="text-[11px] text-slate-400 font-medium">
-          Strict grounding • Factual citations `[S#]` • Fast local inference
+      <form
+        onSubmit={handleAsk}
+        className="assistant-query-form flex flex-col gap-3 rounded-xl border border-slate-300 bg-white p-2 shadow-[0_1px_3px_rgba(15,23,42,0.06)] focus-within:border-emerald-700 focus-within:ring-2 focus-within:ring-emerald-600/20 sm:flex-row sm:items-center"
+      >
+        <div className="flex min-w-0 flex-1 items-center">
+          <MessageCircle className="ml-3 h-6 w-6 shrink-0 text-slate-500" strokeWidth={1.8} aria-hidden="true" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Ask about your manuals, e.g. What is the maximum operating pressure?"
+            disabled={isStreaming}
+            aria-label="Question"
+            className="h-12 min-h-12 min-w-0 flex-1 bg-transparent px-3 text-base text-slate-900 placeholder:text-slate-500 focus:outline-none disabled:opacity-60"
+          />
         </div>
-      </div>
-
-      {/* Query Bar */}
-      <form onSubmit={handleAsk} className="relative flex items-center">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ask a technical question against your ingested PDF manuals..."
-          disabled={isStreaming}
-          className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 pr-28 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-xs text-xs sm:text-sm font-medium transition-all"
-        />
-        <div className="absolute right-3 flex items-center gap-2">
-          {isStreaming ? (
-            <button
-              type="button"
-              onClick={handleAbort}
-              className="flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
-            >
-              <Square className="w-3 h-3 fill-current" />
-              Stop
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={!query.trim() || !selectedModel}
-              className="flex items-center gap-1.5 px-4.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
-            >
-              <Send className="w-3.5 h-3.5" />
-              Ask
-            </button>
-          )}
-        </div>
+        {isStreaming ? (
+          <button
+            type="button"
+            onClick={handleAbort}
+            title="Stop generating response"
+            className="inline-flex h-12 min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-rose-700 px-7 text-sm font-semibold text-white transition-colors hover:bg-rose-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2 sm:w-auto"
+          >
+            <Square className="h-4 w-4 fill-current" aria-hidden="true" />
+            Stop
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={!query.trim() || !selectedModel}
+            className="inline-flex h-12 min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-7 text-sm font-semibold text-white shadow-[0_1px_3px_rgba(15,23,42,0.06)] transition-colors hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-700 sm:w-auto"
+          >
+            <Send className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
+            Ask
+          </button>
+        )}
       </form>
 
       {/* Error alert */}
       {streamError && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-xs flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
+        <div role="alert" className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
+          <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span>{streamError}</span>
         </div>
       )}
 
       {/* Response Display Box */}
       {(answerText || isStreaming || donePayload) && (
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-6 space-y-4 shadow-xs">
+        <article
+          aria-label="Assistant answer"
+          aria-live="polite"
+          className="space-y-5 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.06)] sm:p-6"
+        >
           {/* Header & Badges */}
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <Bot className="w-4 h-4 text-blue-600" />
-              <span className="font-bold text-slate-900 text-xs">{selectedModel}</span>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <Box className="h-6 w-6" strokeWidth={1.8} aria-hidden="true" />
+              </div>
+              <span className="truncate text-base font-bold text-slate-900">
+                {answerStyle === 'fast' ? 'Fast answer' : 'Accurate answer'}
+              </span>
               {isStreaming && (
-                <span className="flex items-center gap-1.5 text-xs text-blue-600 animate-pulse font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Generating response...
+                <span className="flex items-center gap-2 text-sm font-medium text-emerald-800">
+                  <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" aria-hidden="true"></span> Generating response…
                 </span>
               )}
             </div>
 
             {donePayload && (
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center">
                 {donePayload.abstained ? (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                    <AlertTriangle className="w-3.5 h-3.5" /> Abstained (No Context)
+                  <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+                    <AlertTriangle className="h-4 w-4" aria-hidden="true" /> Not in your manuals — won't guess
                   </span>
                 ) : donePayload.citations.is_valid ? (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <CheckCircle className="w-3.5 h-3.5" /> Valid Citations ({donePayload.citations.cited_sources.length})
+                  <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+                    <CheckCircle className="h-4 w-4" aria-hidden="true" /> Backed by {donePayload.citations.cited_sources.length} {donePayload.citations.cited_sources.length === 1 ? 'excerpt' : 'excerpts'}
                   </span>
                 ) : (
                   <span
                     title={donePayload.citations.warnings.join(' | ')}
-                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 cursor-help"
+                    className="inline-flex cursor-help items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800"
                   >
-                    <AlertTriangle className="w-3.5 h-3.5" /> Citation Warning
+                    <AlertTriangle className="h-4 w-4" aria-hidden="true" /> Please check the sources below
                   </span>
                 )}
               </div>
@@ -252,91 +298,105 @@ export const AssistantPage: React.FC = () => {
           </div>
 
           {/* Markdown Content */}
-          <div className="prose max-w-none text-slate-800 text-xs sm:text-sm leading-relaxed font-sans">
-            <ReactMarkdown>{answerText || '...'}</ReactMarkdown>
+          <div className="max-w-prose text-base leading-relaxed text-slate-700 [&_a]:font-semibold [&_a]:text-emerald-800 hover:[&_a]:underline [&_li]:my-1.5 [&_ol]:my-3 [&_ol]:pl-5 [&_p]:my-0 [&_p+p]:mt-3 [&_strong]:font-semibold [&_strong]:text-slate-950 [&_ul]:my-3 [&_ul]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-slate-950 [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:text-base [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:mt-2.5 [&_h3]:mb-1 [&_code]:font-mono [&_code]:text-xs [&_code]:bg-slate-100 [&_code]:text-slate-800 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre]:bg-slate-900 [&_pre]:text-slate-100 [&_pre]:rounded-lg [&_pre]:p-3.5 [&_pre]:overflow-x-auto [&_pre_code]:bg-transparent [&_pre_code]:text-inherit [&_pre_code]:p-0 [&_blockquote]:border-l-4 [&_blockquote]:border-emerald-600 [&_blockquote]:pl-3.5 [&_blockquote]:italic [&_blockquote]:text-slate-600">
+            <ReactMarkdown>{answerText || '…'}</ReactMarkdown>
           </div>
 
-          {/* Citations warnings list if any */}
-          {donePayload?.citations.warnings && donePayload.citations.warnings.length > 0 && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 space-y-1">
-              <span className="font-semibold block">Grounding / Citation Notice:</span>
-              {donePayload.citations.warnings.map((w, idx) => (
-                <div key={idx}>• {w}</div>
+          {/* Citation warnings (only when the validator flags something) */}
+          {donePayload && donePayload.citations.warnings.length > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+              {donePayload.citations.warnings.map((warning, index) => (
+                <span key={index} className="block">{warning}</span>
               ))}
             </div>
           )}
 
-          {/* Performance & Hardware Timings */}
+          {/* Speed details, tucked away — most people only need the answer */}
           {donePayload && (
-            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-5 text-xs text-slate-500 font-mono">
-              <div className="flex items-center gap-1.5" title="Retrieval Latency">
-                <Database className="w-3.5 h-3.5 text-blue-600" />
-                <span>Retrieval: {donePayload.timings.retrieval_ms} ms</span>
-              </div>
-              <div className="flex items-center gap-1.5" title="Time to First Token">
-                <Zap className="w-3.5 h-3.5 text-amber-500" />
-                <span>TTFT: {donePayload.timings.first_token_ms} ms</span>
-              </div>
-              <div className="flex items-center gap-1.5" title="Total Response Latency">
-                <Clock className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Total: {donePayload.timings.total_ms} ms</span>
-              </div>
-              {donePayload.ollama_metrics.eval_tokens_per_sec && (
-                <div className="flex items-center gap-1.5 text-blue-600 font-semibold" title="Output Generation Throughput">
-                  <Cpu className="w-3.5 h-3.5" />
-                  <span>{donePayload.ollama_metrics.eval_tokens_per_sec} tokens/s</span>
+            <details className="border-t border-slate-200 pt-3">
+              <summary className="cursor-pointer text-xs font-semibold text-slate-500 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 rounded">
+                Answered in {donePayload.timings.total_ms} ms · speed details
+              </summary>
+              <div className="pt-3 grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-slate-600 text-xs font-medium uppercase tracking-wide">Finding excerpts</span>
+                  <span className="font-mono text-sm font-bold tabular-nums text-slate-900">{donePayload.timings.retrieval_ms} ms</span>
                 </div>
-              )}
-            </div>
+                <div className="flex flex-col gap-1 sm:border-l sm:border-slate-200 sm:pl-4">
+                  <span className="text-slate-600 text-xs font-medium uppercase tracking-wide">First words</span>
+                  <span className="font-mono text-sm font-bold tabular-nums text-slate-900">{donePayload.timings.first_token_ms} ms</span>
+                </div>
+                <div className="flex flex-col gap-1 sm:border-l sm:border-slate-200 sm:pl-4">
+                  <span className="text-slate-600 text-xs font-medium uppercase tracking-wide">Total</span>
+                  <span className="font-mono text-sm font-bold tabular-nums text-slate-900">{donePayload.timings.total_ms} ms</span>
+                </div>
+                <div className="flex flex-col gap-1 sm:border-l sm:border-slate-200 sm:pl-4">
+                  <span className="text-slate-600 text-xs font-medium uppercase tracking-wide">Writing speed</span>
+                  <span className="font-mono text-sm font-bold tabular-nums text-slate-900">
+                    {donePayload.ollama_metrics.eval_tokens_per_sec != null
+                      ? `${donePayload.ollama_metrics.eval_tokens_per_sec} tokens/s`
+                      : '—'}
+                  </span>
+                </div>
+              </div>
+            </details>
           )}
-        </div>
+        </article>
       )}
 
       {/* Supporting Retrieved Context Passages */}
       {sources.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Supporting Source Passages ({sources.length})
-          </h3>
-          <div className="space-y-2.5">
+        <section className="space-y-4 pb-2" aria-labelledby="supporting-sources-heading">
+          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+            <h2 id="supporting-sources-heading" className="text-xl font-bold tracking-[-0.02em] text-slate-900">
+              Where this came from <span className="text-slate-600">({sources.length})</span>
+            </h2>
+            <p className="text-sm text-slate-600">The exact manual passages behind the answer. Open one to verify.</p>
+          </div>
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
             {sources.map((src) => {
               const isExpanded = !!expandedSources[src.source_id];
+              const panelId = `source-panel-${src.source_id.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
               return (
                 <div
                   key={src.source_id}
-                  className="bg-white border border-slate-200/90 rounded-xl overflow-hidden shadow-xs transition-colors"
+                  className="border-b border-slate-200 last:border-b-0"
                 >
                   <button
                     type="button"
                     onClick={() => toggleSource(src.source_id)}
-                    className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
+                    aria-expanded={isExpanded}
+                    aria-controls={panelId}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3.5 min-h-11 text-left transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 sm:px-5"
                   >
-                    <div className="flex items-center gap-2.5 text-xs">
-                      <span className="font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-100 font-mono">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1.5 text-sm">
+                      <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-mono font-bold text-emerald-800">
                         [{src.source_id}]
                       </span>
-                      <FileText className="w-4 h-4 text-slate-400" />
-                      <span className="text-slate-900 font-semibold">{src.filename}</span>
-                      <span className="text-slate-400">• Page {src.page_number}</span>
-                      <span className="text-slate-400">• Score: {src.score.toFixed(3)}</span>
+                      <FileText className="h-4 w-4 shrink-0 text-slate-600" strokeWidth={1.8} aria-hidden="true" />
+                      <span className="min-w-0 break-all font-semibold text-slate-900 sm:break-normal">{src.filename}</span>
+                      <span className="text-slate-400" aria-hidden="true">•</span>
+                      <span className="whitespace-nowrap font-mono text-xs text-slate-600" title={`Relevance score: ${src.score.toFixed(3)}`}>Page {src.page_number}</span>
                     </div>
                     {isExpanded ? (
-                      <ChevronUp className="w-4 h-4 text-slate-400" />
+                      <ChevronUp className="h-5 w-5 shrink-0 text-slate-600" aria-hidden="true" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                      <ChevronDown className="h-5 w-5 shrink-0 text-slate-600" aria-hidden="true" />
                     )}
                   </button>
 
                   {isExpanded && (
-                    <div className="px-4 pb-4 pt-1 text-xs text-slate-700 font-mono bg-slate-50/70 border-t border-slate-100 whitespace-pre-wrap leading-relaxed">
-                      {src.text}
+                    <div id={panelId} className="px-4 pb-4 sm:px-5">
+                      <div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700 select-text">
+                        {src.text}
+                      </div>
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

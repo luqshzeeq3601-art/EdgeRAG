@@ -185,11 +185,16 @@ class Database:
             connection.row_factory = sqlite3.Row
             connection.execute("PRAGMA foreign_keys = ON")
             foreign_keys = connection.execute("PRAGMA foreign_keys").fetchone()[0]
-            journal_mode = connection.execute("PRAGMA journal_mode = WAL").fetchone()[0]
+            is_memory = str(self.path) == ":memory:"
+            if is_memory:
+                # In-memory databases use the memory journal; WAL is file-only.
+                journal_mode = connection.execute("PRAGMA journal_mode").fetchone()[0]
+            else:
+                journal_mode = connection.execute("PRAGMA journal_mode = WAL").fetchone()[0]
 
             if foreign_keys != 1:
                 raise DatabaseConfigurationError("SQLite foreign_keys pragma is not enabled")
-            if str(journal_mode).lower() != "wal":
+            if not is_memory and str(journal_mode).lower() != "wal":
                 raise DatabaseConfigurationError(
                     f"SQLite journal_mode is {journal_mode!r}, expected 'wal'"
                 )
@@ -260,7 +265,8 @@ class Database:
         errors: list[str] = []
         if not foreign_keys:
             errors.append("foreign_keys pragma is not enabled")
-        if journal_mode != "wal":
+        # In-memory databases report journal_mode=memory; only file-backed DBs require WAL.
+        if journal_mode not in ("wal", "memory"):
             errors.append(f"journal_mode is {journal_mode!r}, expected 'wal'")
         if not table_exists:
             errors.append("schema_migrations table is missing")

@@ -29,7 +29,7 @@ describe('DocumentsPage', () => {
 
     render(<DocumentsPage />);
 
-    expect(screen.getByText('Document Workspace')).toBeInTheDocument();
+    expect(screen.getByText('Manuals')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('cooling_pump.pdf')).toBeInTheDocument();

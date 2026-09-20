@@ -1,6 +1,17 @@
-/* Modern Global Resets and Micro-animations */
+/* Design tokens — single source of truth (emerald brand, slate neutrals) */
 :root {
   color-scheme: light;
+  --brand-700: #047857;
+  --brand-800: #065f46;
+  --brand-900: #064e3b;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --elev-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --elev-md: 0 4px 18px rgba(15, 23, 42, 0.06);
+  --z-topbar: 20;
+  --z-sidebar: 40;
+  --z-modal: 50;
 }
 
 * {
@@ -48,4 +59,13 @@ button:disabled {
 
 .animate-in {
   animation: fadeIn 0.15s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in {
+    animation: none;
+  }
+  * {
+    scroll-behavior: auto !important;
+  }
 }
