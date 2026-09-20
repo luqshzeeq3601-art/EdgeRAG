@@ -1,5 +1,7 @@
 # EdgeRAG: Local Technical Knowledge Assistant & LLM Benchmark Engine
 
+> **Project Status:** 🚧 **In Progress — not yet complete.** Active development and validation are ongoing.
+
 > **100% Offline, Privacy-Preserving Retrieval-Augmented Generation and Real-Time Hardware Telemetry for Industrial Engineering Workstations.**
 
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
