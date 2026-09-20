@@ -9,7 +9,17 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
 
 from app.documents.pipeline import DocumentPipeline
-from app.documents.repository import DocumentNotFoundError, DuplicateDocumentError
+from app.documents.repository import (
+    DocumentNotFoundError,
+    DuplicateDocumentError,
+)
+
+
+def _safe_filename(pipeline: DocumentPipeline, document_id: str) -> str:
+    try:
+        return pipeline.repository.get(document_id).filename
+    except DocumentNotFoundError:
+        return "unknown.pdf"
 
 
 router = APIRouter(prefix="/api/v1", tags=["documents"])
@@ -24,6 +34,8 @@ class DocumentSummary(BaseModel):
     chunk_count: int
     status: str
     error: str | None
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class DocumentDetail(DocumentSummary):
@@ -65,6 +77,8 @@ def _summary(record: Any) -> DocumentSummary:
         chunk_count=record.chunk_count,
         status=record.status,
         error=record.error,
+        created_at=getattr(record, "created_at", None),
+        updated_at=getattr(record, "updated_at", None),
     )
 
 
@@ -139,7 +153,7 @@ async def retrieve(
         RetrievalSource(
             source_id=f"S{index}",
             document_id=chunk.document_id,
-            filename=pipeline.repository.get(chunk.document_id).filename,
+            filename=_safe_filename(pipeline, chunk.document_id),
             page_number=chunk.page_number,
             chunk_id=chunk.chunk_id,
             text=chunk.text,

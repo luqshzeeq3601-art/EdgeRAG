@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { App } from '../App';
 
@@ -21,23 +21,43 @@ vi.mock('../api/client', () => ({
 }));
 
 describe('App Component', () => {
-  it('renders top navigation and switches between pages', async () => {
+  it('renders sidebar navigation and switches between pages', async () => {
     render(<App />);
 
     expect(screen.getByText('EdgeRAG')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Assistant/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Documents/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Benchmarks/i })).toBeInTheDocument();
+    const nav = screen.getByRole('navigation', { name: /Primary navigation/i });
+    expect(within(nav).getByRole('button', { name: /^Ask$/i })).toBeInTheDocument();
+    expect(within(nav).getByRole('button', { name: /^Manuals$/i })).toBeInTheDocument();
+    expect(within(nav).getByRole('button', { name: /^Compare$/i })).toBeInTheDocument();
 
-    // Default is Assistant tab
-    expect(screen.getByPlaceholderText(/Ask a technical question/i)).toBeInTheDocument();
+    // Default is Ask tab
+    expect(screen.getByPlaceholderText(/Ask about your manuals/i)).toBeInTheDocument();
 
-    // Switch to Documents tab
-    fireEvent.click(screen.getByRole('button', { name: /Documents/i }));
-    expect(screen.getByText('Document Workspace')).toBeInTheDocument();
+    // Switch to Manuals tab
+    fireEvent.click(within(nav).getByRole('button', { name: /^Manuals$/i }));
+    expect(screen.getByRole('heading', { name: 'Manuals' })).toBeInTheDocument();
 
-    // Switch to Benchmarks tab
-    fireEvent.click(screen.getByRole('button', { name: /Benchmarks/i }));
-    expect(screen.getByText('Benchmark Dashboard')).toBeInTheDocument();
+    // Switch to Compare tab
+    fireEvent.click(within(nav).getByRole('button', { name: /^Compare$/i }));
+    expect(screen.getByRole('heading', { name: 'Benchmark' })).toBeInTheDocument();
+  });
+
+  it('toggles sidebar collapse on desktop', () => {
+    localStorage.clear();
+    render(<App />);
+
+    const collapseButtons = screen.getAllByRole('button', { name: /Collapse sidebar/i });
+    expect(collapseButtons.length).toBeGreaterThan(0);
+
+    // Click collapse button
+    fireEvent.click(collapseButtons[0]);
+
+    // Expand button should now be present
+    const expandButtons = screen.getAllByRole('button', { name: /Expand sidebar/i });
+    expect(expandButtons.length).toBeGreaterThan(0);
+
+    // Click expand button to restore
+    fireEvent.click(expandButtons[0]);
+    expect(screen.getAllByRole('button', { name: /Collapse sidebar/i }).length).toBeGreaterThan(0);
   });
 });

@@ -21,6 +21,10 @@ data/indexes/*
 !data/documents/ECP-2400_Emergency_Cooling_Pump_Manual.pdf
 !data/indexes/.gitkeep
 
+backend/data/documents/*
+!backend/data/documents/.gitkeep
+!backend/data/documents/45357de852f4945e6a31e60f64e0272bbeb7f04df2fde73f2707c779af761cf7.pdf
+
 data/offline_test/
 
 models/*

@@ -11,6 +11,8 @@ export interface DocumentSummary {
   chunk_count: number;
   status: 'processing' | 'ready' | 'failed';
   error: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface DocumentChunk {
@@ -157,6 +159,16 @@ export interface ModelAggregatedStats {
   load_duration_ms: MetricStats;
 }
 
+export interface TrialReview {
+  id: string;
+  trial_id: string;
+  groundedness: number;
+  usefulness: number;
+  score: number;
+  notes: string | null;
+  reviewed_at: string;
+}
+
 export interface BenchmarkDetail extends BenchmarkSummary {
   config: {
     repetitions: number;
@@ -166,6 +178,7 @@ export interface BenchmarkDetail extends BenchmarkSummary {
   trials: TrialItem[];
   aggregated_metrics: Record<string, ModelAggregatedStats>;
   resource_samples_count: number;
+  reviews?: TrialReview[];
 }
 
 export interface HealthResponse {
@@ -296,16 +309,23 @@ export const api = {
         for (const block of parts) {
           if (!block.trim()) continue;
           let eventType = 'message';
-          let dataStr = '';
+          const dataLines: string[] = [];
 
           const lines = block.split('\n');
           for (const line of lines) {
-            if (line.startsWith('event: ')) {
-              eventType = line.substring(7).trim();
-            } else if (line.startsWith('data: ')) {
-              dataStr += line.substring(6).trim();
+            if (line.startsWith('event:')) {
+              eventType = line.substring(6).trim() || 'message';
+            } else if (line.startsWith('data:')) {
+              // Per SSE spec, strip one leading space; keep remainder and
+              // rejoin multi-line data payloads with newline.
+              let value = line.substring(5);
+              if (value.startsWith(' ')) value = value.substring(1);
+              dataLines.push(value);
+            } else if (line.startsWith(':')) {
+              continue; // SSE comment/heartbeat
             }
           }
+          const dataStr = dataLines.join('\n');
 
           if (!dataStr) continue;
 
@@ -379,5 +399,27 @@ export const api = {
     if (!res.ok && res.status !== 204) {
       throw new Error(`Failed to delete benchmark: HTTP ${res.status}`);
     }
+  },
+
+  saveTrialReview: async (
+    trialId: string,
+    review: { groundedness: number; usefulness: number; notes?: string }
+  ): Promise<TrialReview> => {
+    const res = await fetch(
+      `${API_BASE}/benchmarks/trials/${encodeURIComponent(trialId)}/reviews`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(review),
+      }
+    );
+    return handleResponse<TrialReview>(res);
+  },
+
+  listTrialReviews: async (trialId: string): Promise<TrialReview[]> => {
+    const res = await fetch(
+      `${API_BASE}/benchmarks/trials/${encodeURIComponent(trialId)}/reviews`
+    );
+    return handleResponse<TrialReview[]>(res);
   },
 };

@@ -9,7 +9,12 @@ from typing import Any, Literal
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
-from app.benchmarks.repository import BenchmarkNotFoundError, BenchmarkRecord, BenchmarkRepository
+from app.benchmarks.repository import (
+    BenchmarkNotFoundError,
+    BenchmarkRecord,
+    BenchmarkRepository,
+    TrialNotFoundError,
+)
 from app.services.benchmark import (
     BenchmarkEngine,
     BenchmarkExecutionPlan,
@@ -55,6 +60,23 @@ class BenchmarkDetail(BenchmarkSummary):
     trials: list[dict[str, Any]]
     aggregated_metrics: dict[str, Any]
     resource_samples_count: int
+    reviews: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class CreateReviewRequest(BaseModel):
+    groundedness: int = Field(ge=0, le=2, description="Groundedness score 0-2")
+    usefulness: int = Field(ge=0, le=2, description="Usefulness score 0-2")
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class ReviewResponse(BaseModel):
+    id: str
+    trial_id: str
+    groundedness: int
+    usefulness: int
+    score: int
+    notes: str | None
+    reviewed_at: str
 
 
 def get_benchmark_engine(request: Request) -> BenchmarkEngine:
@@ -168,6 +190,7 @@ def get_benchmark(
     trials = repo.list_trials(benchmark_id)
     aggregated = aggregate_model_metrics(trials)
     samples = repo.list_resource_samples(benchmark_id)
+    reviews = repo.list_reviews_for_benchmark(benchmark_id)
 
     trials_data = [
         {
@@ -194,6 +217,19 @@ def get_benchmark(
         for t in trials
     ]
 
+    reviews_data = [
+        {
+            "id": rv.id,
+            "trial_id": rv.trial_id,
+            "groundedness": rv.groundedness,
+            "usefulness": rv.usefulness,
+            "score": rv.score,
+            "notes": rv.notes,
+            "reviewed_at": rv.reviewed_at,
+        }
+        for rv in reviews
+    ]
+
     return BenchmarkDetail(
         id=record.id,
         name=record.name,
@@ -210,6 +246,7 @@ def get_benchmark(
         trials=trials_data,
         aggregated_metrics=aggregated,
         resource_samples_count=len(samples),
+        reviews=reviews_data,
     )
 
 
@@ -245,3 +282,57 @@ def delete_benchmark(
         repo.delete_benchmark(benchmark_id)
     except BenchmarkNotFoundError:
         raise HTTPException(status_code=404, detail="Benchmark not found") from None
+
+
+@router.post(
+    "/trials/{trial_id}/reviews",
+    response_model=ReviewResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_trial_review(
+    trial_id: str,
+    request: CreateReviewRequest,
+    repo: BenchmarkRepository = Depends(get_benchmark_repository),
+) -> ReviewResponse:
+    """Create or replace the manual quality review for one trial."""
+    try:
+        record = repo.save_review(
+            trial_id,
+            groundedness=request.groundedness,
+            usefulness=request.usefulness,
+            notes=request.notes,
+        )
+    except TrialNotFoundError:
+        raise HTTPException(status_code=404, detail="Trial not found") from None
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ReviewResponse(
+        id=record.id,
+        trial_id=record.trial_id,
+        groundedness=record.groundedness,
+        usefulness=record.usefulness,
+        score=record.score,
+        notes=record.notes,
+        reviewed_at=record.reviewed_at,
+    )
+
+
+@router.get("/trials/{trial_id}/reviews", response_model=list[ReviewResponse])
+def list_trial_reviews(
+    trial_id: str,
+    repo: BenchmarkRepository = Depends(get_benchmark_repository),
+) -> list[ReviewResponse]:
+    """List manual quality reviews for one trial (newest first)."""
+    reviews = repo.list_reviews_for_trial(trial_id)
+    return [
+        ReviewResponse(
+            id=rv.id,
+            trial_id=rv.trial_id,
+            groundedness=rv.groundedness,
+            usefulness=rv.usefulness,
+            score=rv.score,
+            notes=rv.notes,
+            reviewed_at=rv.reviewed_at,
+        )
+        for rv in reviews
+    ]

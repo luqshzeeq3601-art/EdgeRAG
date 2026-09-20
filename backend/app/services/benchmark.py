@@ -13,6 +13,7 @@ from typing import Any, Callable, Literal
 
 from app.benchmarks.repository import BenchmarkRecord, BenchmarkRepository, TrialRecord
 from app.documents.pipeline import DocumentPipeline
+from app.documents.repository import DocumentNotFoundError
 from app.providers.ollama import OllamaGenerateChunk, OllamaProvider
 from app.services.monitoring import HardwareMonitor
 from app.services.rag import (
@@ -111,6 +112,15 @@ def get_suite_by_id(suite_id: str, suites_path: Path | None = None) -> dict[str,
         if s.get("id") == suite_id:
             return s
     return None
+
+
+def _resolve_filename(pipeline: DocumentPipeline, document_id: str) -> str:
+    """Return document filename, falling back gracefully when the doc was deleted."""
+    try:
+        doc = pipeline.repository.get(document_id)
+        return doc.filename if doc is not None else "unknown.pdf"
+    except DocumentNotFoundError:
+        return "unknown.pdf"
 
 
 @dataclass
@@ -212,7 +222,9 @@ class BenchmarkEngine:
 
                 for rep_idx in range(total_reps + (1 if plan.temperature_type == "warm" else 0)):
                     is_warmup = (plan.temperature_type == "warm" and rep_idx == 0)
-                    eval_rep_num = rep_idx if not (plan.temperature_type == "warm") else (rep_idx)
+                    # Warm-up occupies rep 0; evaluated reps continue at 1..N for
+                    # warm runs (0..N-1 for cold). is_warmup remains the discard signal.
+                    eval_rep_num = rep_idx
 
                     # Alternate model order for fair testing
                     models_order = list(plan.models)
@@ -233,9 +245,7 @@ class BenchmarkEngine:
                                 {
                                     "source_id": f"S{idx}",
                                     "document_id": chunk.document_id,
-                                    "filename": self.pipeline.repository.get(chunk.document_id).filename
-                                    if self.pipeline.repository.get(chunk.document_id)
-                                    else "unknown.pdf",
+                                    "filename": _resolve_filename(self.pipeline, chunk.document_id),
                                     "page_number": chunk.page_number,
                                     "chunk_id": chunk.chunk_id,
                                     "text": chunk.text,
@@ -334,9 +344,7 @@ class BenchmarkEngine:
                 {
                     "source_id": f"S{idx}",
                     "document_id": chunk.document_id,
-                    "filename": self.pipeline.repository.get(chunk.document_id).filename
-                    if self.pipeline.repository.get(chunk.document_id)
-                    else "unknown.pdf",
+                    "filename": _resolve_filename(self.pipeline, chunk.document_id),
                     "page_number": chunk.page_number,
                     "chunk_id": chunk.chunk_id,
                     "text": chunk.text,

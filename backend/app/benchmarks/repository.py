@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import json
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
 from app.persistence.database import Database
+
+
+class TrialNotFoundError(Exception):
+    """Raised when a requested benchmark trial is not found."""
 
 
 class BenchmarkNotFoundError(Exception):
@@ -69,6 +74,17 @@ class ResourceSampleRecord:
     process_gpu_vram_reason: str | None = None
     trial_id: str | None = None
     id: int | None = None
+
+
+@dataclass(frozen=True)
+class ReviewRecord:
+    id: str
+    trial_id: str
+    groundedness: int
+    usefulness: int
+    score: int
+    notes: str | None
+    reviewed_at: str
 
 
 class BenchmarkRepository:
@@ -446,3 +462,88 @@ class BenchmarkRepository:
             ]
         finally:
             conn.close()
+
+    def save_review(
+        self,
+        trial_id: str,
+        *,
+        groundedness: int,
+        usefulness: int,
+        notes: str | None = None,
+    ) -> ReviewRecord:
+        """Create or replace the manual quality review for one trial."""
+        if groundedness not in (0, 1, 2):
+            raise ValueError("groundedness must be 0, 1, or 2")
+        if usefulness not in (0, 1, 2):
+            raise ValueError("usefulness must be 0, 1, or 2")
+        conn = self.database.connect()
+        try:
+            trial = conn.execute(
+                "SELECT id FROM benchmark_trials WHERE id = ?", (trial_id,)
+            ).fetchone()
+            if trial is None:
+                raise TrialNotFoundError(f"Trial {trial_id} not found")
+            # One current review per trial: replace any prior review.
+            conn.execute("DELETE FROM benchmark_reviews WHERE trial_id = ?", (trial_id,))
+            review_id = f"review_{uuid.uuid4().hex[:12]}"
+            reviewed_at = datetime.now(timezone.utc).isoformat()
+            score = min(groundedness, usefulness)
+            conn.execute(
+                """
+                INSERT INTO benchmark_reviews
+                    (id, trial_id, score, groundedness, usefulness, notes, reviewed_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (review_id, trial_id, score, groundedness, usefulness, notes, reviewed_at),
+            )
+            conn.commit()
+            return ReviewRecord(
+                id=review_id,
+                trial_id=trial_id,
+                groundedness=groundedness,
+                usefulness=usefulness,
+                score=score,
+                notes=notes,
+                reviewed_at=reviewed_at,
+            )
+        finally:
+            conn.close()
+
+    def list_reviews_for_trial(self, trial_id: str) -> list[ReviewRecord]:
+        conn = self.database.connect()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM benchmark_reviews WHERE trial_id = ? ORDER BY reviewed_at DESC",
+                (trial_id,),
+            ).fetchall()
+            return [self._review(row) for row in rows]
+        finally:
+            conn.close()
+
+    def list_reviews_for_benchmark(self, benchmark_id: str) -> list[ReviewRecord]:
+        conn = self.database.connect()
+        try:
+            rows = conn.execute(
+                """
+                SELECT r.* FROM benchmark_reviews AS r
+                JOIN benchmark_trials AS t ON t.id = r.trial_id
+                WHERE t.benchmark_id = ?
+                ORDER BY r.reviewed_at DESC
+                """,
+                (benchmark_id,),
+            ).fetchall()
+            return [self._review(row) for row in rows]
+        finally:
+            conn.close()
+
+    @staticmethod
+    def _review(row: Any) -> ReviewRecord:
+        return ReviewRecord(
+            id=row["id"],
+            trial_id=row["trial_id"],
+            groundedness=int(row["groundedness"]),
+            usefulness=int(row["usefulness"]),
+            score=int(row["score"]),
+            notes=row["notes"],
+            reviewed_at=row["reviewed_at"],
+        )

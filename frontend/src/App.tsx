@@ -2,15 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { DocumentsPage } from './pages/Documents';
 import { AssistantPage } from './pages/Assistant';
 import { BenchmarksPage } from './pages/Benchmarks';
+import { Sidebar } from './components/Sidebar';
+import type { Tab } from './components/Sidebar';
 import { api } from './api/client';
 import type { HealthResponse } from './api/client';
-import { FileText, MessageSquare, BarChart2, Cpu, Settings } from 'lucide-react';
-
-type Tab = 'documents' | 'assistant' | 'benchmarks';
+import { Cpu, Menu, PanelLeftClose, PanelLeft } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<Tab>('assistant');
   const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('edgerag_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSidebar = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('edgerag_sidebar_collapsed', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   const checkHealth = async () => {
     try {
@@ -27,121 +47,124 @@ export const App: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleNavigate = (tab: Tab) => {
+    setCurrentTab(tab);
+    setMobileNavOpen(false);
+  };
+
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans selection:bg-blue-600 selection:text-white antialiased">
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-6 lg:px-8 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Brand Logo & Subtitle */}
-          <div className="flex items-center gap-3">
-            {/* 3D Isometric Cube Icon */}
-            <div className="w-9 h-9 flex items-center justify-center shrink-0">
-              <svg className="w-9 h-9" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 3L32 10.5V25.5L18 33L4 25.5V10.5L18 3Z" fill="#1E40AF" />
-                <path d="M18 3L32 10.5L18 18L4 10.5L18 3Z" fill="#3B82F6" />
-                <path d="M18 18L32 10.5V25.5L18 33V18Z" fill="#1D4ED8" />
-                <path d="M4 10.5L18 18V33L4 25.5V10.5Z" fill="#2563EB" />
-                <path d="M18 6L28 11.5L18 17L8 11.5L18 6Z" fill="#60A5FA" opacity="0.9" />
-              </svg>
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex font-sans antialiased">
+      {/* Fixed Left Sidebar (desktop) */}
+      <aside
+        className={`hidden lg:flex fixed inset-y-0 left-0 z-40 bg-white border-r border-slate-200/90 flex-col transition-all duration-200 ease-in-out shadow-[0_1px_3px_rgba(15,23,42,0.06)] ${
+          isCollapsed ? 'w-[68px]' : 'w-[280px]'
+        }`}
+      >
+        <Sidebar
+          currentTab={currentTab}
+          onNavigate={handleNavigate}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={toggleSidebar}
+          health={health}
+        />
+      </aside>
+
+      {/* Mobile drawer sidebar */}
+      {mobileNavOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileNavOpen(false)}
+            aria-hidden="true"
+          />
+          <aside className="relative w-[min(300px,86vw)] bg-white border-r border-slate-200 flex flex-col shadow-2xl pb-[env(safe-area-inset-bottom)]">
+            <Sidebar
+              currentTab={currentTab}
+              onNavigate={handleNavigate}
+              isCollapsed={false}
+              isMobile={true}
+              onCloseMobile={() => setMobileNavOpen(false)}
+              health={health}
+            />
+          </aside>
+        </div>
+      )}
+
+      {/* Right Content Area: Topbar + Main View */}
+      <div
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ease-in-out ${
+          isCollapsed ? 'lg:ml-[68px]' : 'lg:ml-[280px]'
+        }`}
+      >
+        <header className="sticky top-0 z-20 h-16 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 lg:px-8">
+          <div className="h-full flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setMobileNavOpen(true)}
+                className="lg:hidden flex items-center justify-center min-w-11 min-h-11 p-2.5 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 cursor-pointer"
+                aria-label="Open navigation"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+
+              {/* Desktop toggle button */}
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="hidden lg:flex items-center justify-center min-w-11 min-h-11 p-2.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200/80 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {isCollapsed ? (
+                  <PanelLeft className="w-4 h-4 text-slate-700" />
+                ) : (
+                  <PanelLeftClose className="w-4 h-4 text-slate-500" />
+                )}
+              </button>
             </div>
-            <div>
-              <span className="font-bold text-xl text-slate-900 tracking-tight block leading-tight">EdgeRAG</span>
-              <p className="text-[11px] text-slate-500 font-medium">Technical Assistant & Hardware Telemetry</p>
-            </div>
-          </div>
 
-          {/* Navigation Pill Group */}
-          <nav className="flex items-center p-1 bg-slate-100/90 rounded-2xl border border-slate-200/70 gap-1 shadow-inner">
-            <button
-              onClick={() => setCurrentTab('documents')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                currentTab === 'documents'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Documents</span>
-            </button>
-
-            <button
-              onClick={() => setCurrentTab('assistant')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                currentTab === 'assistant'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Assistant</span>
-            </button>
-
-            <button
-              onClick={() => setCurrentTab('benchmarks')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                currentTab === 'benchmarks'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
-              }`}
-            >
-              <BarChart2 className="w-3.5 h-3.5" />
-              <span>Benchmarks</span>
-            </button>
-          </nav>
-
-          {/* Telemetry Pill & Settings */}
-          <div className="flex items-center gap-2.5">
-            <div
-              className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white shadow-2xs text-xs hover:border-slate-300 transition-colors cursor-help"
-              title={
-                health?.status === 'healthy'
-                  ? 'All local systems ready (SQLite WAL + Ollama daemon)'
-                  : health?.status === 'degraded'
-                  ? 'Ollama connection degraded'
-                  : 'Connecting to local backend...'
-              }
-            >
-              <div className="flex items-center gap-1.5 text-slate-700">
-                <Cpu className="w-4 h-4 text-slate-700" />
+            {/* Hardware / Engine Telemetry Chip */}
+            <div className="flex items-center ml-auto">
+              <div
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 shadow-[0_1px_3px_rgba(15,23,42,0.06)] cursor-default"
+                title={
+                  health?.status === 'healthy'
+                    ? 'Your manuals and AI models are ready on this computer — no internet needed'
+                    : health?.status === 'degraded'
+                    ? `AI models having trouble: ${health?.ollama?.error ?? 'connection issue'}`
+                    : 'Starting up…'
+                }
+              >
+                <Cpu className="w-4 h-4 text-slate-600" strokeWidth={1.8} />
                 <span
-                  className={`w-2 h-2 rounded-full ${
+                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                     health?.status === 'healthy'
                       ? 'bg-emerald-500 animate-pulse'
                       : health?.status === 'degraded'
                       ? 'bg-amber-500'
                       : 'bg-slate-400'
                   }`}
-                ></span>
-                <span className="font-bold text-slate-800">RTX 3070</span>
+                />
+                <span className="font-semibold text-slate-800">On-device</span>
+                <span className="text-slate-400" aria-hidden="true">•</span>
+                <span className="font-mono text-xs font-medium tabular-nums whitespace-nowrap text-slate-600">
+                  {health?.status === 'healthy'
+                    ? 'Ready'
+                    : health?.status === 'degraded'
+                    ? 'Needs attention'
+                    : 'Starting…'}
+                </span>
               </div>
-              <span className="text-slate-300">•</span>
-              <span className="text-slate-600 font-mono text-[11px] tabular-nums">1.2 / 8.0 GB VRAM</span>
             </div>
-
-            <button
-              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-xl border border-slate-200 bg-white shadow-2xs transition-colors"
-              title="Settings"
-              aria-label="Settings"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Page Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8">
-        {currentTab === 'documents' && <DocumentsPage />}
-        {currentTab === 'assistant' && <AssistantPage />}
-        {currentTab === 'benchmarks' && <BenchmarksPage />}
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200/80 py-4 px-6 md:px-8 text-xs text-slate-400">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <span>EdgeRAG v1.0 • Local Engine (Offline)</span>
-        </div>
-      </footer>
+        <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8 max-w-7xl w-full mx-auto">
+          {currentTab === 'documents' && <DocumentsPage />}
+          {currentTab === 'assistant' && <AssistantPage />}
+          {currentTab === 'benchmarks' && <BenchmarksPage />}
+        </main>
+      </div>
     </div>
   );
 };
