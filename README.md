@@ -25,6 +25,15 @@
 - **Reproducible Benchmark Suite**: Implements warm (1 warm-up trial discarded, 3 repetitions) and cold (model unloaded via Ollama API) benchmark runs with alternating model order and nanosecond metric tracking.
 - **Unified Modular Monolith**: High-performance FastAPI backend serving both REST/SSE APIs and a responsive React 19 SPA dashboard via static bundling or multi-stage Docker packaging.
 
+### Outcomes
+
+> In progress: figures come from the current `acceptance_20` benchmark run.
+
+- Benchmarked 2 edge LLMs on an RTX 3070 with a warm/cold protocol (1 warm-up, 3 repetitions), measuring 73.5 ms time-to-first-token and 438.4 tokens/s for smollm2:135m versus 122.7 ms and 311.5 tokens/s for qwen2.5:0.5b.
+- Enforced strict abstention and server-side citation validation in a fully offline RAG assistant, refusing 60% of unsupported questions and scoring 1.80/2.00 groundedness with qwen2.5:0.5b.
+- Profiled CPU, RAM, GPU, and VRAM every 500 ms through psutil and NVML during each benchmark trial, storing results in SQLite for side-by-side model comparison.
+- Verified air-gapped operation with a harness that blocks every outbound socket except 127.0.0.1, backed by 50 automated backend tests.
+
 ---
 
 ## 2. Architecture Diagram
@@ -39,7 +48,7 @@ flowchart TB
 
     subgraph Backend["Backend Engine (FastAPI Modular Monolith)"]
         API["FastAPI REST & SSE Router\n(/api/v1)"]
-        
+
         subgraph Ingestion["Document Pipeline"]
             PDF_Parser["pypdf Page Extractor"]
             Chunker["Rolling Window Chunker\n(220 tokens, 40 overlap)"]
@@ -74,7 +83,7 @@ flowchart TB
 
     PDF_Parser --> Chunker --> Embedder --> FAISS
     Chunker --> SQLite
-    
+
     Grounding -->|Top-K Retrieve| FAISS
     Grounding -->|Async Stream| Ollama
     Grounding --> CitationVal
